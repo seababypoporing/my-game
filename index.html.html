@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>喵喵領地 — 貓咪邏輯謎題</title>
+<style>
+  :root { --bg:#f6f1e7; --card:#fffdf8; --fg:#2a2622; --muted:#7a7268; --rule:#ddd3c2; --line:#3b342c; --accent:#e07a3f; --accent-fg:#fff; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#17151a; --card:#211e26; --fg:#efe9df; --muted:#a39b90; --rule:#38333f; --line:#0d0c10; --accent:#f0914f; --accent-fg:#1b1208; } }
+  :root[data-theme="dark"] { --bg:#17151a; --card:#211e26; --fg:#efe9df; --muted:#a39b90; --rule:#38333f; --line:#0d0c10; --accent:#f0914f; --accent-fg:#1b1208; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--fg); font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; }
+  body { padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 28px); display:flex; justify-content:center; }
+  main { width:100%; max-width:540px; }
+  h1 { margin:0; font-size:1.5rem; }
+  .rules { margin:6px 0 14px; color:var(--muted); font-size:.86rem; line-height:1.55; }
+  .seg { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .opt { display:flex; align-items:center; gap:8px; margin:0 2px 12px; font-size:.9rem; cursor:pointer; width:fit-content; }
+  .opt input { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
+  .seg button, .tool, .mode button { border:1px solid var(--rule); background:var(--card); color:var(--fg); border-radius:10px; padding:8px 12px; font-size:.88rem; cursor:pointer; font-family:inherit; }
+  .seg button.on, .mode button.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:700; }
+  .bar { display:flex; justify-content:space-between; align-items:center; margin:4px 2px 10px; font-weight:700; }
+  #hearts { letter-spacing:2px; } #time { color:var(--muted); font-variant-numeric:tabular-nums; font-weight:500; }
+  .cc { font-weight:700; font-size:1.1rem; display:flex; align-items:center; gap:6px; } .cc b { color:var(--accent); font-variant-numeric:tabular-nums; display:inline-block; }
+  .cc b.bump { animation:bump .45s; } @keyframes bump { 50% { transform:scale(1.45); } }
+  .rt { display:flex; align-items:center; gap:8px; }
+  .board { --n:6; position:relative; width:var(--bs,320px); height:var(--bs,320px); margin:0 auto; display:grid; grid-template-columns:repeat(var(--n),minmax(0,1fr)); grid-template-rows:repeat(var(--n),minmax(0,1fr)); border:3px solid var(--line); border-radius:6px; overflow:hidden; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation; }
+  .cell { min-width:0; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:calc(var(--bs,320px) / var(--n) * .58); line-height:1; cursor:pointer; color:#3a342c; border-style:solid; border-color:var(--line); }
+  .cell .x { font-size:.6em; opacity:.45; font-weight:700; } .cell .dot { font-size:.35em; opacity:.3; }
+  .cell.shake { animation:shake .35s; } .cell.hint { animation:pop .5s; }
+  .cell .cat { display:inline-block; }
+  .cell.catpop .cat { animation:catpop .55s cubic-bezier(.2,1.6,.4,1); }
+  .cell.wave { animation:wave .5s ease-out var(--d,0ms); }
+  .fxp { position:fixed; z-index:6; pointer-events:none; transform:translate(-50%,-50%); animation:fly .85s ease-out forwards; }
+  @keyframes shake { 20%{transform:translateX(-5px)} 60%{transform:translateX(5px)} }
+  @keyframes pop { 50%{ transform:scale(1.25);} }
+  @keyframes catpop { 0%{ transform:scale(.3) rotate(-14deg);} 60%{ transform:scale(1.35) rotate(7deg);} 100%{ transform:scale(1) rotate(0);} }
+  @keyframes wave { 40%{ filter:brightness(1.4);} 100%{ filter:brightness(1);} }
+  @keyframes fly { 0%{ opacity:1; transform:translate(-50%,-50%) scale(.4);} 70%{ opacity:1;} 100%{ opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.15);} }
+  .mode { display:flex; gap:8px; margin:14px 0 10px; } .mode button { flex:1; padding:10px 4px; font-size:.95rem; display:flex; align-items:center; justify-content:center; }
+  .mode button.cat { flex:1.8; }
+  .mg { flex:4; display:flex; flex-direction:column; gap:5px; border:1px dashed var(--rule); border-radius:12px; padding:4px 6px 6px; }
+  .mgl { font-size:.8rem; font-weight:700; color:var(--muted); text-align:center; line-height:1.1; }
+  .mgb { display:flex; gap:8px; flex:1; } .mgb button { padding:8px 4px; }
+  
+  
+  .mode button[data-m]:not(.cat).on { background:var(--card); color:inherit; border:2px solid var(--accent); }
+  .cell .mk { width:58%; height:58%; opacity:.92; pointer-events:none; }
+  .tools { display:flex; gap:8px; flex-wrap:wrap; } .tool { flex:1; min-width:84px; } .tool:disabled { opacity:.4; cursor:default; }
+  .msg { min-height:1.4em; margin-top:10px; text-align:center; color:var(--muted); font-size:.88rem; }
+  #ov { position:fixed; top:0; left:0; right:0; bottom:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); padding:20px; z-index:5; }
+  #ov .box { background:var(--card); border:1px solid var(--rule); border-radius:16px; padding:26px 24px; text-align:center; max-width:340px; width:100%; }
+  #ov h2 { margin:0 0 6px; font-size:1.5rem; } #ov p { margin:4px 0 18px; color:var(--muted); line-height:1.6; }
+  #ov .row { display:flex; gap:8px; } #ov .row button { flex:1; padding:12px; border-radius:10px; border:1px solid var(--rule); background:var(--card); color:var(--fg); font-size:.95rem; cursor:pointer; font-family:inherit; }
+  #ov .row button.p { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:700; }
+  button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🐾 喵喵領地</h1>
+  <p class="rules">每一<b>列</b>、每一<b>行</b>、每個<b>色塊</b>各放 <b>1 隻貓</b>,而且貓與貓<b>不能相鄰</b>(斜角也不行)。放錯會扣一顆愛心,共 3 顆。</p>
+  <label class="opt"><input type="checkbox" id="elimTog"> 💡 顯示位置提示(標出被貓排除的格子)</label>
+  <label class="opt"><input type="checkbox" id="waveTog"> ✨ 顯示周邊閃光動畫(放對貓後的漣漪)</label>
+  <div class="seg" id="sizes"></div>
+  <div class="bar"><span id="hearts"></span><span class="cc"><span>🐱</span><b id="cats">0/6</b></span><span class="rt"><button id="snd" class="tool" style="flex:none;min-width:0;padding:4px 10px" title="音效">🔊</button><span id="time">00:00</span></span></div>
+  <div class="board" id="board"></div>
+  <div class="mode" id="modes"><button data-m="cat" class="cat on">🐱 放貓</button><div class="mg"><span class="mgl">標記</span><div class="mgb"><button data-m="3"></button><button data-m="1"></button><button data-m="4"></button><button data-m="5"></button></div></div></div>
+  <div class="tools">
+    <button class="tool" id="undo">↩ 復原</button>
+    <button class="tool" id="hint">💡 提示 (<span id="hl">3</span>)</button>
+    <button class="tool" id="restart">重玩</button>
+    <button class="tool" id="daily">📅 每日挑戰</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</main>
+<div id="ov"><div class="box"><h2 id="ovt"></h2><p id="ovp"></p><div class="row"><button id="ovr">重玩</button><button class="p" id="ovn">下一題</button></div></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const PAL = ['#ffb3ba','#ffd9a8','#fff0a0','#bfe6a8','#9fe3d8','#a6cdf2','#c9b8f2','#f4b6df','#d3d0c8','#e2c38f','#dcf58a','#ff9f80'];
+const SIZES = [5, 6, 7, 8, 9, 10, 11, 12];
+let N = 6, region, sol, colors, S, hearts, hints, hist, mode = 'cat', over = false, t0 = 0, timer = null, isDaily = false, seedUsed = null;
+
+// ---------- 產生題目 ----------
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function shuffle(a, rnd) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function genSolution(n, rnd) {
+  const cols = [], used = new Set();
+  (function bt(r) {
+    if (r === n) return true;
+    for (const c of shuffle([...Array(n).keys()], rnd)) {
+      if (used.has(c) || (r > 0 && Math.abs(c - cols[r - 1]) <= 1)) continue;
+      cols[r] = c; used.add(c); if (bt(r + 1)) return true; used.delete(c);
+    }
+    return false;
+  })(0);
+  return cols;
+}
+function growRegions(n, cols, rnd) {
+  const g = Array.from({ length: n }, () => Array(n).fill(-1));
+  cols.forEach((c, r) => g[r][c] = r);
+  let left = n * n - n;
+  while (left > 0) {
+    const cand = [];
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (g[r][c] < 0)
+      for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) { const rr = r + dr, cc = c + dc; if (rr >= 0 && cc >= 0 && rr < n && cc < n && g[rr][cc] >= 0) cand.push([r, c, g[rr][cc]]); }
+    const [r, c, id] = cand[Math.floor(rnd() * cand.length)]; g[r][c] = id; left--;
+  }
+  return g;
+}
+function pc(x) { x -= (x >> 1) & 0x55555555; x = (x & 0x33333333) + ((x >> 2) & 0x33333333); return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24; }
+function findAlt(g, n, cols) { // 找出一組與預定答案不同的解,沒有則回傳 null(位元運算 + 最少選項優先 + 剪枝)
+  const FULL = (1 << n) - 1, rc = Array.from({ length: n }, () => new Int32Array(n));
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) rc[r][g[r][c]] |= 1 << c;
+  const cc = new Int32Array(n).fill(-1), blocked = new Int32Array(n);
+  const cands = Array.from({ length: n + 1 }, () => new Int32Array(n)), saves = Array.from({ length: n + 1 }, () => new Int32Array(n));
+  let usedCols = 0, usedRegs = 0, res = null;
+  (function bt(d) {
+    if (res) return;
+    if (d === n) { for (let i = 0; i < n; i++) if (cc[i] !== cols[i]) { res = Array.from(cc); return; } return; }
+    const cand = cands[d]; let best = -1, bestMask = 0, bestCnt = 99, union = 0;
+    for (let r = 0; r < n; r++) {
+      if (cc[r] >= 0) continue;
+      let m = FULL & ~usedCols & ~blocked[r];
+      if (r > 0 && cc[r - 1] >= 0) m &= ~((7 << cc[r - 1]) >> 1);
+      if (r < n - 1 && cc[r + 1] >= 0) m &= ~((7 << cc[r + 1]) >> 1);
+      cand[r] = m; if (!m) return;
+      union |= m; const k = pc(m); if (k < bestCnt) { best = r; bestMask = m; bestCnt = k; }
+    }
+    if ((FULL & ~usedCols & ~union) !== 0) return;
+    for (let id = 0; id < n; id++) {
+      if ((usedRegs >> id) & 1) continue;
+      let ok = false; for (let r = 0; r < n; r++) if (cc[r] < 0 && (cand[r] & rc[r][id])) { ok = true; break; }
+      if (!ok) return;
+    }
+    const sv = saves[d]; let mm = bestMask;
+    while (mm) {
+      const low = mm & -mm, c = 31 - Math.clz32(low), id = g[best][c]; mm ^= low;
+      cc[best] = c; usedCols |= low; usedRegs |= 1 << id;
+      for (let r = 0; r < n; r++) { sv[r] = blocked[r]; blocked[r] |= rc[r][id]; }
+      bt(d + 1);
+      for (let r = 0; r < n; r++) blocked[r] = sv[r];
+      usedRegs &= ~(1 << id); usedCols &= ~low; cc[best] = -1;
+      if (res) return;
+    }
+  })(0);
+  return res;
+}
+function stillConnected(g, n, id, rr, cc) { // 拿掉 (rr,cc) 後,該色塊是否仍相連
+  const cells = []; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (g[r][c] === id && !(r === rr && c === cc)) cells.push([r, c]);
+  if (!cells.length) return false;
+  const seen = new Set([cells[0].join()]), q = [cells[0]];
+  while (q.length) { const [r, c] = q.pop(); for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) { const a = r + dr, b = c + dc, k = a + ',' + b; if (a >= 0 && b >= 0 && a < n && b < n && g[a][b] === id && !(a === rr && b === cc) && !seen.has(k)) { seen.add(k); q.push([a, b]); } } }
+  return seen.size === cells.length;
+}
+function repair(g, n, cols, alt, rnd) { // 改動一格色塊,讓這組多餘的解失效
+  for (const r of shuffle([...Array(n).keys()], rnd)) {
+    const c = alt[r]; if (c === cols[r]) continue;
+    const old = g[r][c];
+    for (const [dr, dc] of shuffle([[1,0],[-1,0],[0,1],[0,-1]], rnd)) {
+      const a = r + dr, b = c + dc;
+      if (a < 0 || b < 0 || a >= n || b >= n || g[a][b] === old) continue;
+      if (!stillConnected(g, n, old, r, c)) continue;
+      g[r][c] = g[a][b]; return true;
+    }
+  }
+  return false;
+}
+function makePuzzle(n, rnd) {
+  for (let i = 0; i < 3000; i++) {
+    const cols = genSolution(n, rnd), g = growRegions(n, cols, rnd);
+    for (let k = 0; k < 150; k++) {
+      const alt = findAlt(g, n, cols);
+      if (!alt) return { g, cols, pal: shuffle([...Array(PAL.length).keys()], rnd) };
+      if (!repair(g, n, cols, alt, rnd)) break;
+    }
+  }
+}
+
+// ---------- 遊戲狀態 ----------
+function newGame(n, daily) {
+  N = n; isDaily = !!daily;
+  seedUsed = daily ? Number(new Date().toISOString().slice(0, 10).replace(/-/g, '')) : (Math.random() * 1e9) | 0;
+  loadPuzzle(seedUsed);
+}
+function loadPuzzle(seed) {
+  if (N >= 10) { $('msg').textContent = '🐾 題目產生中…'; setTimeout(() => doLoad(seed), 30); } else doLoad(seed);
+}
+function doLoad(seed) {
+  const p = makePuzzle(N, mulberry32(seed));
+  region = p.g; sol = p.cols; colors = p.pal;
+  resetState();
+}
+function resetState() {
+  S = Array.from({ length: N }, () => Array(N).fill(0));
+  hearts = 3; hints = 3; hist = []; over = false;
+  $('ov').style.display = 'none'; $('msg').textContent = isDaily ? '📅 今日挑戰:每個人今天的題目都一樣' : '';
+  clearInterval(timer); t0 = Date.now(); timer = setInterval(tickTime, 500); tickTime();
+  render();
+}
+function tickTime() { const s = Math.floor((Date.now() - t0) / 1000); $('time').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+function elapsedStr() { return $('time').textContent; }
+function snap() { hist.push(S.map(r => r.slice())); if (hist.length > 200) hist.shift(); }
+
+function fitBoard() { // 不依賴 CSS aspect-ratio(舊版 iPhone 不支援),用程式算出棋盤大小
+  const b = $('board'), w = Math.min(b.parentElement.clientWidth || 320, 520);
+  b.style.setProperty('--bs', w + 'px');
+}
+addEventListener('resize', fitBoard);
+addEventListener('error', e => { const m = $('msg'); if (m) m.textContent = '⚠️ 發生錯誤:' + (e.message || ''); });
+function eliminated() {
+  const e = Array.from({ length: N }, () => Array(N).fill(false));
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (S[r][c] === 2)
+    for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++)
+      if (rr === r || cc === c || region[rr][cc] === region[r][c] || (Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1)) e[rr][cc] = true;
+  return e;
+}
+function render(flash) {
+  const b = $('board'); b.style.setProperty('--n', N); fitBoard();
+  const el = showElim ? eliminated() : null; let html = '';
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const id = region[r][c], bd = (rr, cc) => (rr < 0 || cc < 0 || rr >= N || cc >= N || region[rr][cc] !== id) ? (N >= 10 ? 2.5 : 3) : .5;
+    const style = `background:${PAL[colors[id]]};border-width:${bd(r-1,c)}px ${bd(r,c+1)}px ${bd(r+1,c)}px ${bd(r,c-1)}px`;
+    const s = S[r][c]; let inner = '';
+    if (s === 2) inner = '<span class="cat">🐱</span>'; else if (MK[s]) inner = MK[s]; else if (el && el[r][c]) inner = '<span class="dot">●</span>';
+    const cls = 'cell' + (flash && flash.r === r && flash.c === c ? ' ' + flash.type : '');
+    html += `<div class="${cls}" data-r="${r}" data-c="${c}" style="${style}">${inner}</div>`;
+  }
+  b.innerHTML = html;
+  $('hearts').textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts);
+  const nc = S.reduce((a, row) => a + row.filter(v => v === 2).length, 0), ce = $('cats'); ce.textContent = nc + '/' + N;
+  if (nc > lastCats) { ce.classList.remove('bump'); void ce.offsetWidth; ce.classList.add('bump'); } lastCats = nc;
+  $('hl').textContent = hints; $('hint').disabled = hints <= 0 || over; $('undo').disabled = !hist.length || over;
+}
+let sndOn = true, actx = null, showElim = false, showWave = false, lastCats = 0;
+// 四組標記(PS 手把符號):3=○ 紅、1=✕ 藍、4=△ 綠、5=□ 粉
+const MK = {
+  3: '<svg viewBox="0 0 24 24" class="mk"><circle cx="12" cy="12" r="8" fill="none" stroke="#d93a3a" stroke-width="3"/></svg>',
+  1: '<svg viewBox="0 0 24 24" class="mk"><path d="M5.5 5.5L18.5 18.5M18.5 5.5L5.5 18.5" fill="none" stroke="#2f6fe0" stroke-width="3" stroke-linecap="round"/></svg>',
+  4: '<svg viewBox="0 0 24 24" class="mk"><path d="M12 4.5L20.5 19H3.5Z" fill="none" stroke="#1a9f5e" stroke-width="3" stroke-linejoin="round"/></svg>',
+  5: '<svg viewBox="0 0 24 24" class="mk"><rect x="5" y="5" width="14" height="14" fill="none" stroke="#d64a9a" stroke-width="3" stroke-linejoin="round"/></svg>'
+};
+const MKNAME = { 3: '圓圈', 1: '叉叉', 4: '三角形', 5: '方塊' };
+document.querySelectorAll('#modes button').forEach(b => {
+  const m = b.dataset.m === 'cat' ? 'cat' : +b.dataset.m;
+  if (m !== 'cat') { b.innerHTML = MK[m].replace('class="mk"', 'width="24" height="24"'); b.title = MKNAME[m] + '標記'; b.setAttribute('aria-label', b.title); }
+  b.onclick = () => setMode(m);
+});
+$('waveTog').onchange = e => { showWave = e.target.checked; };
+$('elimTog').onchange = e => { showElim = e.target.checked; render(); };
+function meow() {
+  if (!sndOn) return;
+  try {
+    const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(900, t + .12); o.frequency.exponentialRampToValueAtTime(520, t + .32);
+    f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 2;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.22, t + .04); g.gain.exponentialRampToValueAtTime(.0001, t + .34);
+    o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .36);
+  } catch (e) {}
+}
+$('snd').onclick = () => { sndOn = !sndOn; $('snd').textContent = sndOn ? '🔊' : '🔇'; if (sndOn) meow(); };
+function buzz() { // 放錯:低沉的「巴巴」兩聲
+  if (navigator.vibrate) { try { navigator.vibrate([70, 50, 70]); } catch (e) {} }
+  if (!sndOn) return;
+  try {
+    const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
+    [0, 0.19].forEach(off => {
+      const t = c.currentTime + off, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+      o.type = 'square'; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(140, t + .14);
+      f.type = 'lowpass'; f.frequency.value = 900;
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.28, t + .015); g.gain.setValueAtTime(.28, t + .1); g.gain.exponentialRampToValueAtTime(.0001, t + .15);
+      o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .16);
+    });
+  } catch (e) {}
+}
+function burst(x, y, n, icons, spread) {
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('span'); p.className = 'fxp'; p.textContent = icons[Math.floor(Math.random() * icons.length)];
+    const a = Math.random() * Math.PI * 2, d = spread * (0.5 + Math.random() * 0.8);
+    p.style.cssText = `left:${x}px;top:${y}px;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d - 20}px;font-size:${12 + Math.random() * 12}px;`;
+    document.body.appendChild(p); setTimeout(() => p.remove(), 950);
+  }
+}
+function fx(r, c) { // 貓放對時:喵叫聲、震動、漣漪、星星粒子
+  meow(); if (navigator.vibrate) { try { navigator.vibrate(18); } catch (e) {} }
+  const cells = $('board').children, id = region[r][c];
+  for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++) {
+    if (!showWave || (rr === r && cc === c)) continue;
+    if (rr === r || cc === c || region[rr][cc] === id) {
+      const el = cells[rr * N + cc]; if (!el) continue;
+      el.style.setProperty('--d', (Math.max(Math.abs(rr - r), Math.abs(cc - c)) * 45) + 'ms'); el.classList.add('wave');
+    }
+  }
+  const b = cells[r * N + c].getBoundingClientRect();
+  burst(b.left + b.width / 2, b.top + b.height / 2, 9, ['✨', '⭐', '💛', '🐾'], Math.max(40, b.width * 1.4));
+}
+function fanfare() { // 過關歡呼配樂:歡快的號角旋律 + 掌聲
+  if (!sndOn) return;
+  try {
+    const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
+    const t0 = c.currentTime + 0.05;
+    const note = (f, st, dur, type, vol) => {
+      const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(.0001, t0 + st); g.gain.exponentialRampToValueAtTime(vol, t0 + st + .015); g.gain.exponentialRampToValueAtTime(.0001, t0 + st + dur);
+      o.connect(g); g.connect(c.destination); o.start(t0 + st); o.stop(t0 + st + dur + .02);
+    };
+    [[523.25, 0, .14], [659.25, .14, .14], [783.99, .28, .14], [1046.5, .42, .28], [783.99, .74, .14], [1046.5, .88, .14], [1318.5, 1.02, .5]]
+      .forEach(([f, st, d]) => { note(f, st, d, 'triangle', .22); note(f * 2, st, d * .8, 'square', .03); });
+    [523.25, 659.25, 783.99, 1046.5].forEach(f => { note(f, 1.55, 1.1, 'triangle', .16); note(f / 2, 1.55, 1.1, 'sine', .12); });
+    const len = Math.floor(c.sampleRate * 2.2), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(), bp = c.createBiquadFilter(), ng = c.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = .7;
+    const ts = t0 + 1.0; ng.gain.setValueAtTime(0, ts);
+    for (let k = 0; k < 55; k++) ng.gain.setValueAtTime(Math.sin(Math.PI * k / 55) * .3 * (.4 + Math.random() * .6), ts + k * .04);
+    ng.gain.setValueAtTime(0, ts + 2.2);
+    src.connect(bp); bp.connect(ng); ng.connect(c.destination); src.start(ts);
+  } catch (e) {}
+}
+function celebrate() { // 過關慶祝
+  fanfare();
+  const bb = $('board').getBoundingClientRect();
+  for (let k = 0; k < 6; k++) setTimeout(() => burst(bb.left + Math.random() * bb.width, bb.top + Math.random() * bb.height * .8, 8, ['🎉', '✨', '⭐', '🐱', '💛', '🐾'], 90), k * 140);
+}
+function checkWin() {
+  if (sol.every((c, r) => S[r][c] === 2)) {
+    over = true; clearInterval(timer); $('hint').disabled = true; $('undo').disabled = true; celebrate();
+    $('ovt').textContent = '🎉 太棒了!'; $('ovp').innerHTML = `用時 <b>${elapsedStr()}</b> ・ 失誤 <b>${3 - hearts}</b> 次<br>每隻貓都找到自己的領地了。`;
+    $('ovn').textContent = isDaily ? '玩一般題' : '下一題'; setTimeout(() => { if (over) $('ov').style.display = 'flex'; }, 1200);
+  }
+}
+function failJingle() { // 三次失誤:約 3 秒的失敗音樂(哇-哇-哇-哇——)
+  if (!sndOn) return;
+  try {
+    const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
+    const t0 = c.currentTime + 0.4; // 等「巴巴」提示音播完再開始
+    const note = (f, st, dur, slideTo, vib) => {
+      const o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t0 + st);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + st + dur);
+      lp.type = 'lowpass'; lp.Q.value = 6; lp.frequency.setValueAtTime(500, t0 + st);
+      lp.frequency.exponentialRampToValueAtTime(1600, t0 + st + dur * .35); lp.frequency.exponentialRampToValueAtTime(450, t0 + st + dur);
+      g.gain.setValueAtTime(.0001, t0 + st); g.gain.exponentialRampToValueAtTime(.2, t0 + st + .03);
+      g.gain.setValueAtTime(.2, t0 + st + dur - .08); g.gain.exponentialRampToValueAtTime(.0001, t0 + st + dur);
+      if (vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 6; lg.gain.value = 9; l.connect(lg); lg.connect(o.frequency); l.start(t0 + st); l.stop(t0 + st + dur + .02); }
+      o.connect(lp); lp.connect(g); g.connect(c.destination); o.start(t0 + st); o.stop(t0 + st + dur + .02);
+    };
+    note(466, 0, .38); note(440, .45, .38); note(415, .9, .38); note(392, 1.35, 1.25, 311, true);
+  } catch (e) {}
+}
+function lose() {
+  failJingle();
+  over = true; clearInterval(timer); render();
+  $('ovt').textContent = '💔 愛心用完了'; $('ovp').textContent = '別灰心,再仔細推理一次吧!';
+  $('ovn').textContent = '新題目'; $('ov').style.display = 'flex';
+}
+function placeCat(r, c) {
+  if (over) return;
+  if (S[r][c] === 2) { snap(); S[r][c] = 0; render(); return; }
+  snap();
+  if (sol[r] === c) { S[r][c] = 2; $('msg').textContent = ''; render({ r, c, type: 'catpop' }); fx(r, c); checkWin(); }
+  else {
+    S[r][c] = 1; hearts--; $('msg').textContent = '這裡不對喔,已幫你標上 ✕';
+    buzz(); render({ r, c, type: 'shake' }); if (hearts <= 0) lose();
+  }
+}
+function toggleMark(r, c, m = 1) {
+  if (over || S[r][c] === 2) return;
+  snap(); S[r][c] = S[r][c] === m ? 0 : m; render();
+}
+$('board').addEventListener('click', e => { const d = e.target.closest('.cell'); if (!d) return; const r = +d.dataset.r, c = +d.dataset.c; if (mode === 'cat') placeCat(r, c); else if (!window.PointerEvent) toggleMark(r, c, mode); });
+$('board').addEventListener('contextmenu', e => { e.preventDefault(); const d = e.target.closest('.cell'); if (d) toggleMark(+d.dataset.r, +d.dataset.c, mode === 'cat' ? 1 : mode); });
+
+// 手指/滑鼠滑過格子即可連續標記(第一格已是同符號則變成連續清除)
+let drag = null;
+function cellAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('.cell') : null; }
+function dragApply(d) {
+  if (!d || !drag) return;
+  const r = +d.dataset.r, c = +d.dataset.c, key = r + ',' + c;
+  if (drag.last === key) return; drag.last = key;
+  const s = S[r][c], m = drag.m; if (s === 2) return;
+  if (drag.act === 'paint' && s !== m) { S[r][c] = m; d.innerHTML = MK[m]; drag.changed = true; }
+  else if (drag.act === 'erase' && s === m) { S[r][c] = 0; d.innerHTML = ''; drag.changed = true; }
+}
+function dragMove(e) { if (drag) { e.preventDefault(); dragApply(cellAt(e.clientX, e.clientY)); } }
+function dragEnd() {
+  if (!drag) return;
+  removeEventListener('pointermove', dragMove); removeEventListener('pointerup', dragEnd); removeEventListener('pointercancel', dragEnd);
+  if (!drag.changed) hist.pop();
+  drag = null; render();
+}
+$('board').addEventListener('pointerdown', e => {
+  if (mode === 'cat' || over || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const d = e.target.closest ? e.target.closest('.cell') : null; if (!d) return;
+  e.preventDefault();
+  try { if (e.target.releasePointerCapture) e.target.releasePointerCapture(e.pointerId); } catch (x) {}
+  const r = +d.dataset.r, c = +d.dataset.c;
+  snap(); drag = { m: mode, act: S[r][c] === mode ? 'erase' : 'paint', last: '', changed: false };
+  dragApply(d);
+  addEventListener('pointermove', dragMove, { passive: false }); addEventListener('pointerup', dragEnd); addEventListener('pointercancel', dragEnd);
+});
+function setMode(m) { mode = m; $('board').style.touchAction = m === 'cat' ? 'manipulation' : 'none'; document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', (b.dataset.m === 'cat' ? 'cat' : +b.dataset.m) === m)); }
+
+$('undo').onclick = () => { if (hist.length && !over) { S = hist.pop(); render(); } };
+$('hint').onclick = () => {
+  if (over || hints <= 0) return;
+  const rows = [...Array(N).keys()].filter(r => S[r][sol[r]] !== 2); if (!rows.length) return;
+  const r = rows[Math.floor(Math.random() * rows.length)]; snap(); S[r][sol[r]] = 2; hints--;
+  $('msg').textContent = '💡 已幫你放好一隻貓'; render({ r, c: sol[r], type: 'catpop' }); fx(r, sol[r]); checkWin();
+};
+$('restart').onclick = resetState;
+$('daily').onclick = () => { N = 7; isDaily = true; seedUsed = Number(new Date().toISOString().slice(0, 10).replace(/-/g, '')); loadPuzzle(seedUsed); updSizes(); };
+$('ovr').onclick = resetState;
+$('ovn').onclick = () => newGame(N, false);
+function updSizes() { document.querySelectorAll('#sizes button').forEach(b => b.classList.toggle('on', +b.dataset.n === N && !isDaily)); }
+SIZES.forEach(n => { const b = document.createElement('button'); b.dataset.n = n; b.textContent = `${n}×${n}`; b.onclick = () => { newGame(n, false); updSizes(); }; $('sizes').appendChild(b); });
+newGame(6, false); updSizes();
+</script>
+</body>
+</html>
