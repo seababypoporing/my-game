@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>小朋友下樓梯</title>
+<style>
+:root{--panel:#fff8ec;--ink:#1d2540;--sub:#5b6585;--hot:#ff6b6b;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:#232c4d;--ink:#f3efe6;--sub:#aab4d6;color-scheme:dark}}
+:root[data-theme="dark"]{--panel:#232c4d;--ink:#f3efe6;--sub:#aab4d6;color-scheme:dark}
+html,body{height:100%;margin:0;background:#0d1327;overflow:hidden;font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+body{display:grid;place-items:center}
+canvas{display:block;background:#16213e;border-radius:6px}
+#ov{z-index:10;position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,28,.6);padding:16px;box-sizing:border-box}
+.card{background:var(--panel);color:var(--ink);border-radius:16px;padding:22px 24px;max-width:400px;width:100%;max-height:94%;overflow:auto;box-sizing:border-box}
+h1{margin:0 0 6px;font-size:28px}
+p,li{font-size:14px;line-height:1.7;color:var(--sub);margin:4px 0}
+ul{list-style:none;padding:0;margin:8px 0 12px}
+b{color:var(--ink)}
+.sw{display:inline-block;width:28px;height:10px;border-radius:3px;margin-right:8px;vertical-align:middle}
+.go{background:var(--hot);color:#fff;border:0;border-radius:10px;font:inherit;font-size:18px;font-weight:700;padding:11px 30px;cursor:pointer;margin-top:6px}
+.go:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#mute{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:calc(10px + env(safe-area-inset-left,0px));width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:18px;cursor:pointer;z-index:5}
+#slowBtn{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:12px 22px;border-radius:999px;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.5);color:#fff;font:inherit;font-size:16px;z-index:5}
+@media (pointer:coarse){#slowBtn{display:block}}
+#mute:focus-visible,#slowBtn:focus-visible{outline:3px solid #ffd23f;outline-offset:2px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="小朋友下樓梯遊戲畫面"></canvas>
+<button id="mute" aria-label="開關音效" title="音效（M）">🔊</button>
+<button id="slowBtn">減速</button>
+<div id="ov"><div class="card" id="card">
+  <h1>小朋友下樓梯</h1>
+  <p>一路往下走，別被天花板的尖刺碰到，也別掉到畫面下方。<b>越往下，捲動速度越快。</b></p>
+  <ul>
+    <li><span class="sw" style="background:#4cd38a"></span>一般樓梯：踩上去補 2 點血</li>
+    <li><span class="sw" style="background:#ff7aa8"></span>粉紅樓梯：補 25 點血，每塊只能用一次</li>
+    <li><span class="sw" style="background:#8892a6;border-top:4px solid #ff5a4f"></span>尖刺樓梯：扣 20 點血</li>
+    <li><span class="sw" style="background:#ffd23f"></span>彈簧：把你彈高</li>
+    <li><span class="sw" style="background:#4aa3ff"></span>輸送帶：會推著你走</li>
+    <li><span class="sw" style="background:#c49a6c"></span>易碎樓梯：站太久會碎掉</li>
+  </ul>
+  <p>天花板扣 30 點血。電腦：← → 或 A D 移動。手機：按住畫面左半邊或右半邊。</p>
+  <p><b>減速技能</b>：按空白鍵（手機按「減速」鈕），5 秒內樓梯速度變慢。用完後要再往下走 50 層才能再用。右下角喇叭或 M 鍵可開關音效。</p>
+  <button class="go" id="go">開始遊戲</button>
+</div></div>
+<script>
+const $ = id => document.getElementById(id), cv = $('c'), ctx = cv.getContext('2d');
+const W = 400, H = 600, CEIL = 22, rnd = (a, b) => a + Math.random() * (b - a);
+function fit() {
+  const S = Math.min(innerWidth / W, innerHeight / H), d = Math.min(devicePixelRatio || 1, 2);
+  cv.style.width = W * S + 'px'; cv.style.height = H * S + 'px'; cv.width = W * S * d; cv.height = H * S * d;
+}
+addEventListener('resize', fit); fit();
+
+let state = 'ready', pl, p, hp, dist, floors, ft, hurtFx = 0, shake = 0, flashT = 0, flashS = '', best = 0, tm = 0, overAt = 0;
+try { best = +localStorage.getItem('stairsBest') || 0; } catch (e) {}
+let kL = 0, kR = 0, tD = 0;
+const dir = () => tD || (kR - kL);
+
+// ---------- 音效（用 Web Audio 即時合成，不需要音檔）與減速技能 ----------
+let ac = null, muted = false, slowT = 0, slowReadyAt = 0, lastLb = '';
+function audio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (ac && ac.state === 'suspended') ac.resume();
+}
+function tone(f, d, type = 'square', v = .07, f2 = 0, delay = 0) {
+  if (!ac || muted) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function noise(d, v = .08) {
+  if (!ac || muted) return;
+  const n = Math.floor(ac.sampleRate * d), b = ac.createBuffer(1, n, ac.sampleRate), a = b.getChannelData(0);
+  for (let i = 0; i < n; i++) a[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = ac.createBufferSource(), g = ac.createGain(); g.gain.value = v; s.buffer = b; s.connect(g); g.connect(ac.destination); s.start();
+}
+const SFX = {
+  land: () => tone(330, .07, 'triangle', .08, 220),
+  heal: () => [523, 659, 784].forEach((f, i) => tone(f, .12, 'triangle', .08, 0, i * .07)),
+  hurt: () => { tone(180, .25, 'sawtooth', .1, 60); noise(.15, .1); },
+  spring: () => tone(240, .25, 'sine', .12, 720),
+  crack: () => noise(.1, .07),
+  lvl: () => [440, 554, 659, 880].forEach((f, i) => tone(f, .14, 'square', .06, 0, i * .09)),
+  slow: () => tone(600, .5, 'sine', .12, 150),
+  ready: () => { tone(880, .1, 'triangle', .08); tone(1320, .15, 'triangle', .08, 0, .1); },
+  die: () => tone(400, .6, 'sawtooth', .1, 60)
+};
+const sfx = n => { try { SFX[n](); } catch (e) {} };
+function setMute(m) { muted = m; $('mute').textContent = m ? '🔇' : '🔊'; }
+$('mute').onclick = () => setMute(!muted);
+function useSlow() {
+  if (state !== 'play' || slowT > 0) return;
+  if (floors < slowReadyAt) { pop('還要 ' + (slowReadyAt - floors) + ' 層', '#fff'); return; }
+  slowT = 5; slowReadyAt = floors + 50; sfx('slow'); flashS = '減速 5 秒'; flashT = 1;
+}
+$('slowBtn').onpointerdown = e => { e.preventDefault(); audio(); useSlow(); };
+
+function spawn(y) {
+  const w = rnd(72, 112), f = floors, sp = Math.min(.22, .08 + f * .003);
+  const T = [['heal', hp < 40 ? .16 : .07], ['spike', sp], ['spring', .09], ['conv', .14], ['fake', .13]];
+  let r = Math.random(), c = 0, ty = 'normal';
+  for (const [k, v] of T) { c += v; if (r < c) { ty = k; break; } }
+  pl.push({x: rnd(6, W - w - 6), y, w, ty, dir: Math.random() < .5 ? -1 : 1, hit: 0, t: 0, ghost: 0, gone: 0, py: y});
+}
+function reset() {
+  hp = 100; dist = 0; floors = 0; ft = []; hurtFx = shake = flashT = 0; slowT = 0; slowReadyAt = 0;
+  pl = [{x: W / 2 - 60, y: 300, w: 120, ty: 'normal', dir: 1, hit: 1, t: 0, ghost: 0, gone: 0, py: 300}];
+  p = {x: W / 2 - 11, y: 270, w: 22, h: 30, vy: 0, stand: pl[0], face: 1, inv: 0};
+  let y = 300; while (y < H + 90) { y += rnd(64, 90); spawn(y); }
+}
+function start() { audio(); reset(); state = 'play'; $('ov').classList.add('hide'); }
+function die(why) {
+  state = 'over'; overAt = performance.now(); sfx('die');
+  if (floors > best) { best = floors; try { localStorage.setItem('stairsBest', best); } catch (e) {} }
+  $('card').innerHTML = `<h1>遊戲結束</h1><p>${why}</p><p>你下到了地下 <b>${floors}</b> 層，最佳紀錄 <b>${best}</b> 層。</p><button class="go" id="go2">再玩一次</button>`;
+  $('ov').classList.remove('hide'); $('go2').onclick = start;
+}
+const pop = (s, c) => ft.push({x: p.x + p.w / 2, y: p.y, s, c, t: .9});
+function hurt(n) {
+  if (p.inv > 0) return;
+  hp -= n; p.inv = 1.1; hurtFx = .3; shake = .25; pop('-' + n, '#ff5a4f'); sfx('hurt');
+  if (hp <= 0) { hp = 0; die(n >= 30 ? '被天花板的尖刺刺到了。' : '血量歸零了。'); }
+}
+function heal(n) { hp = Math.min(100, hp + n); pop('+' + n, '#4cd38a'); if (n >= 10) sfx('heal'); }
+function land(q) {
+  p.y = q.y - p.h; p.vy = 0;
+  if (q.ty === 'spring') { p.vy = -520; p.stand = null; sfx('spring'); return; }
+  p.stand = q; sfx('land');
+  if (!q.hit) {
+    q.hit = 1;
+    if (q.ty === 'spike') hurt(20);
+    else if (q.ty === 'heal') { heal(25); q.ty = 'used'; }
+    else if (q.ty !== 'fake') heal(2);
+  }
+}
+
+function update(dt) {
+  const spd = Math.min(240, 55 + floors * 2.6) * (slowT > 0 ? .4 : 1);
+  slowT = Math.max(0, slowT - dt);
+  pl.forEach(q => { q.py = q.y; q.y -= spd * dt; });
+  dist += spd * dt;
+  const nf = Math.floor(dist / 75);
+  if (nf > floors) {
+    floors = nf;
+    if (slowReadyAt && floors === slowReadyAt) { sfx('ready'); flashS = '減速已充飽！'; flashT = 1.2; }
+    if (floors % 8 === 0) { flashS = `加速！第 ${1 + floors / 8} 級`; flashT = 1.4; sfx('lvl'); }
+  }
+  const d = dir(); if (d) p.face = d;
+  p.x = Math.max(0, Math.min(W - p.w, p.x + d * 170 * dt));
+  p.inv = Math.max(0, p.inv - dt);
+  if (p.stand) {
+    const q = p.stand;
+    if (q.gone || q.ghost || p.x + p.w < q.x || p.x > q.x + q.w) p.stand = null;
+    else {
+      p.y = q.y - p.h; p.vy = 0;
+      if (q.ty === 'conv') p.x = Math.max(0, Math.min(W - p.w, p.x + q.dir * 70 * dt));
+      if (q.ty === 'fake') { q.t += dt; if (q.t > .45) { q.gone = 1; p.stand = null; sfx('crack'); } }
+    }
+  }
+  if (!p.stand) {
+    const pb = p.y + p.h; p.vy = Math.min(560, p.vy + 1000 * dt); p.y += p.vy * dt;
+    const nb = p.y + p.h;
+    if (p.vy >= 0) for (const q of pl)
+      if (!q.gone && !q.ghost && p.x + p.w > q.x && p.x < q.x + q.w && pb <= q.py + 3 && nb >= q.y) { land(q); break; }
+  }
+  if (p.y < CEIL) { hurt(30); p.y = CEIL + 2; p.vy = 40; if (p.stand) { p.stand.ghost = 1; p.stand = null; } }
+  if (p.y > H) die('掉到畫面下方了。');
+  pl = pl.filter(q => q.y > -20 && !q.gone);
+  let low = pl.reduce((m, q) => Math.max(m, q.y), 0);
+  while (low < H + 20) { low += rnd(64, 90); spawn(low); }
+  ft.forEach(f => { f.t -= dt; f.y -= 40 * dt; }); ft = ft.filter(f => f.t > 0);
+  hurtFx = Math.max(0, hurtFx - dt); shake = Math.max(0, shake - dt); flashT = Math.max(0, flashT - dt);
+}
+
+// ---------- 繪圖 ----------
+function drawBg() {
+  ctx.fillStyle = '#16213e'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 2;
+  const r0 = Math.floor(dist / 40);
+  for (let r = 0; r < 17; r++) {
+    const y = (r0 + r) * 40 - dist, off = ((r0 + r) & 1) * 50;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y);
+    for (let x = off; x < W; x += 100) { ctx.moveTo(x, y); ctx.lineTo(x, y + 40); }
+    ctx.stroke();
+  }
+}
+function drawPl(q) {
+  const col = {normal: '#4cd38a', used: '#5d7f72', heal: '#ff7aa8', spike: '#8892a6', spring: '#ffd23f', conv: '#4aa3ff', fake: '#c49a6c'}[q.ty];
+  const x = q.x + (q.ty === 'fake' && q.t > 0 ? Math.sin(tm * 60) * 1.5 : 0), y = q.y, w = q.w;
+  ctx.save(); if (q.ghost) ctx.globalAlpha = .3;
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, w, 12, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(x + 2, y + 8, w - 4, 4);
+  if (q.ty === 'spike') { ctx.fillStyle = '#ff5a4f'; for (let i = x + 3; i < x + w - 10; i += 11) { ctx.beginPath(); ctx.moveTo(i, y); ctx.lineTo(i + 5, y - 9); ctx.lineTo(i + 10, y); ctx.fill(); } }
+  if (q.ty === 'heal') { ctx.fillStyle = '#fff'; ctx.fillRect(x + w / 2 - 2, y + 1, 4, 10); ctx.fillRect(x + w / 2 - 6, y + 4, 12, 4); ctx.font = '16px sans-serif'; ctx.fillText('❤', x + w / 2 - 8, y - 4); }
+  if (q.ty === 'spring') { ctx.strokeStyle = '#a87a00'; ctx.lineWidth = 2; ctx.beginPath(); for (let i = x + 6; i < x + w - 6; i += 8) { ctx.moveTo(i, y + 2); ctx.lineTo(i + 4, y + 8); ctx.lineTo(i + 8, y + 2); } ctx.stroke(); }
+  if (q.ty === 'conv') {
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath();
+    const sh = (((tm * 30 * q.dir) % 16) + 16) % 16;
+    for (let cx = x + 6 + sh; cx < x + w - 8; cx += 16) { ctx.moveTo(cx - 2 * q.dir, y + 2); ctx.lineTo(cx + 2 * q.dir, y + 6); ctx.lineTo(cx - 2 * q.dir, y + 10); }
+    ctx.stroke();
+  }
+  if (q.ty === 'fake') { ctx.strokeStyle = 'rgba(60,30,10,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); [w / 3, 2 * w / 3].forEach(o => { ctx.moveTo(x + o, y); ctx.lineTo(x + o - 4, y + 6); ctx.lineTo(x + o + 3, y + 12); }); ctx.stroke(); }
+  ctx.restore();
+}
+function drawKid() {
+  if (p.inv > 0 && Math.floor(tm * 18) % 2) return;
+  const x = p.x, y = p.y, sw = dir() && p.stand ? Math.sin(tm * 18) * 3 : 0, f = p.face;
+  ctx.fillStyle = '#2b3a67'; ctx.fillRect(x + 4 + sw, y + 22, 6, 8); ctx.fillRect(x + 12 - sw, y + 22, 6, 8);
+  ctx.fillStyle = '#ff6b6b'; ctx.fillRect(x + 3, y + 12, 16, 11);
+  ctx.fillStyle = '#ffd7b0'; ctx.beginPath(); ctx.arc(x + 11, y + 8, 8, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3a2a1a'; ctx.beginPath(); ctx.arc(x + 11, y + 6, 8, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#222'; ctx.fillRect(x + 8 + f * 2, y + 8, 2, 3); ctx.fillRect(x + 13 + f * 2, y + 8, 2, 3);
+}
+function drawCeil() {
+  ctx.fillStyle = '#c9d2e0'; for (let x = 0; x < W; x += 25) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 12.5, CEIL); ctx.lineTo(x + 25, 0); ctx.fill(); }
+  ctx.fillStyle = '#ff5a4f'; for (let x = 0; x < W; x += 25) { ctx.beginPath(); ctx.moveTo(x + 7, CEIL - 9); ctx.lineTo(x + 12.5, CEIL); ctx.lineTo(x + 18, CEIL - 9); ctx.fill(); }
+}
+function drawHud() {
+  const f = hp / 100, col = hp > 50 ? '#4cd38a' : hp > 25 ? '#ffd23f' : '#ff5a4f';
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.roundRect(8, 30, 214, 24, 8); ctx.fill();
+  ctx.font = '15px sans-serif'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ff6b6b'; ctx.fillText('❤', 14, 43);
+  ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(34, 36, 130, 14);
+  ctx.fillStyle = col; ctx.fillRect(34, 36, 130 * f, 14);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 13px "Microsoft JhengHei","PingFang TC",sans-serif'; ctx.fillText(Math.ceil(hp) + ' / 100', 170, 43);
+  ctx.textAlign = 'right'; ctx.font = 'bold 17px "Microsoft JhengHei","PingFang TC",sans-serif';
+  ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.7)'; ctx.shadowBlur = 4;
+  ctx.fillText(`地下 ${floors} 層`, W - 10, 42); ctx.font = '13px "Microsoft JhengHei","PingFang TC",sans-serif';
+  ctx.fillText(`速度 第 ${1 + Math.floor(floors / 8)} 級`, W - 10, 62);
+  const rdy = slowT <= 0 && floors >= slowReadyAt;
+  ctx.fillStyle = slowT > 0 ? '#7cc4ff' : rdy ? '#ffd23f' : 'rgba(255,255,255,.7)';
+  ctx.fillText(slowT > 0 ? `減速中 ${slowT.toFixed(1)} 秒` : rdy ? '空白鍵：減速' : `減速 還要 ${slowReadyAt - floors} 層`, W - 10, 82);
+  ctx.shadowBlur = 0; ctx.textAlign = 'left';
+  const lb = slowT > 0 ? '減速中' : rdy ? '減速' : `減速 ${slowReadyAt - floors}`;
+  if (lb !== lastLb) { lastLb = lb; $('slowBtn').textContent = lb; }
+}
+function draw() {
+  ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+  ctx.save(); if (shake > 0) ctx.translate(rnd(-1, 1) * shake * 14, rnd(-1, 1) * shake * 14);
+  drawBg(); pl.forEach(drawPl); drawKid(); drawCeil();
+  ft.forEach(f => { ctx.globalAlpha = Math.min(1, f.t * 2); ctx.fillStyle = f.c; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(f.s, f.x, f.y); });
+  ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.restore();
+  if (slowT > 0) { ctx.fillStyle = 'rgba(80,160,255,.14)'; ctx.fillRect(0, 0, W, H); }
+  if (hurtFx > 0) { ctx.fillStyle = `rgba(255,60,60,${hurtFx * 1.4})`; ctx.fillRect(0, 0, W, H); }
+  drawHud();
+  if (flashT > 0) { ctx.globalAlpha = Math.min(1, flashT * 2); ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 34px "Microsoft JhengHei","PingFang TC",sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(0,0,0,.7)'; ctx.shadowBlur = 6; ctx.fillText(flashS, W / 2, 200); ctx.shadowBlur = 0; ctx.textAlign = 'left'; ctx.globalAlpha = 1; }
+}
+
+// ---------- 輸入 ----------
+addEventListener('keydown', e => {
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { kL = 1; e.preventDefault(); }
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') { kR = 1; e.preventDefault(); }
+  audio();
+  if (k === 'm' || k === 'M') setMute(!muted);
+  if (k === ' ' && state === 'play') { e.preventDefault(); if (!e.repeat) useSlow(); }
+  if ((k === 'Enter' || k === ' ') && state !== 'play' && performance.now() - overAt > 600) { e.preventDefault(); start(); }
+});
+addEventListener('keyup', e => {
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') kL = 0;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') kR = 0;
+});
+const side = e => { const r = cv.getBoundingClientRect(); return e.clientX - r.left < r.width / 2 ? -1 : 1; };
+cv.addEventListener('pointerdown', e => { audio(); tD = side(e); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => { if (tD) tD = side(e); });
+['pointerup', 'pointercancel'].forEach(ev => cv.addEventListener(ev, () => tD = 0));
+$('go').onclick = start;
+
+// ---------- 主迴圈 ----------
+reset();
+let last = performance.now();
+(function loop(now) {
+  const dt = Math.min(.033, (now - last) / 1000); last = now; tm += dt;
+  if (state === 'play') update(dt);
+  draw(); requestAnimationFrame(loop);
+})(last);
+</script>
+</body>
+</html>
