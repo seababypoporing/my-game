@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>3D 小精靈 Pac-Man</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { color-scheme: dark; --bg:#05060f; --fg:#f4f1de; --yellow:#ffd60a; --muted:#8d93b5; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; }
+  #wrap { position:fixed; top:0; left:0; right:0; bottom:0; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  canvas { display:block; width:100%; height:100%; }
+  #hud { position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); left:14px; right:14px; display:flex; justify-content:space-between; font-weight:700; font-size:1.05rem; pointer-events:none; text-shadow:0 2px 6px #000; }
+  #hud span b { color:var(--yellow); }
+  #overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:rgba(5,6,15,.72); padding:24px; cursor:pointer; }
+  #overlay h1 { font-size:clamp(2rem,8vw,3.4rem); margin:0 0 10px; color:var(--yellow); letter-spacing:.04em; }
+  #overlay p { margin:4px 0; color:var(--muted); line-height:1.6; }
+  #overlay .go { margin-top:18px; padding:12px 26px; border-radius:999px; background:var(--yellow); color:#111; font-weight:800; }
+  #pad { position:absolute; bottom:calc(env(safe-area-inset-bottom,0px) + 14px); left:0; right:0; display:none; justify-content:space-between; padding:0 18px; pointer-events:none; }
+  @media (pointer:coarse) { #pad { display:flex; } }
+  #pad .grp { display:grid; grid-template-columns:repeat(3,56px); grid-template-rows:repeat(2,56px); gap:6px; pointer-events:auto; }
+  #pad button { border:1px solid #3a4070; background:rgba(20,24,52,.75); color:var(--fg); border-radius:12px; font-size:1.3rem; touch-action:manipulation; }
+  #pad .jump { width:96px; height:96px; align-self:end; border-radius:50%; background:rgba(255,214,10,.85); color:#111; font-weight:800; pointer-events:auto; }
+  #banner { position:absolute; top:16%; left:0; right:0; text-align:center; font-size:clamp(1.4rem,6vw,2.4rem); font-weight:800; color:#ffd60a; text-shadow:0 3px 14px #000; pointer-events:none; opacity:0; }
+  #banner.show { animation:bn 2.6s ease-out; }
+  @keyframes bn { 0% { opacity:0; transform:translateY(14px); } 15%,70% { opacity:1; transform:none; } 100% { opacity:0; } }
+  #toast { position:absolute; top:28%; left:0; right:0; text-align:center; font-size:1.7rem; font-weight:800; color:#ffd60a; text-shadow:0 2px 10px #000; pointer-events:none; opacity:0; }
+  #toast.show { animation:tt 1.1s ease-out; }
+  @keyframes tt { 0% { opacity:0; transform:translateY(12px) scale(.8); } 20% { opacity:1; transform:none; } 80% { opacity:1; } 100% { opacity:0; transform:translateY(-14px); } }
+  .shop { margin-top:12px; display:flex; flex-direction:column; gap:8px; align-items:stretch; min-width:260px; max-width:360px; }
+  .shop .sl { color:#ffd60a; font-weight:700; line-height:1.5; }
+  .shop button { background:#1c2142; color:#f4f1de; border:1px solid #3a4070; border-radius:12px; padding:12px 14px; font-size:1rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:12px; font-family:inherit; }
+  .shop button:hover { border-color:#ffd60a; }
+  .shop button i { font-style:normal; color:#ffd60a; font-weight:700; white-space:nowrap; }
+  .shop .sm { color:#8d93b5; font-size:.82rem; min-height:1.3em; }
+  .ovl #pad { display:none !important; }
+  #pad .rb { display:flex; flex-direction:column; align-items:flex-end; gap:10px; pointer-events:none; }
+  #pad .god { width:58px; height:58px; border-radius:50%; background:rgba(60,120,255,.85); color:#fff; font-size:1.4rem; border:none; pointer-events:auto; }
+  #left { position:absolute; top:calc(env(safe-area-inset-top,0px) + 40px); right:14px; text-align:right; font-weight:700; font-size:.95rem; line-height:1.45; text-shadow:0 2px 6px #000; pointer-events:none; }
+  #left b { color:#ffd60a; font-variant-numeric:tabular-nums; }
+  html, body { touch-action:none; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  #mute { position:absolute; top:calc(env(safe-area-inset-top,0px) + 40px); left:12px; width:42px; height:42px; border-radius:50%; border:1px solid #3a4070; background:rgba(20,24,52,.7); color:#f4f1de; font-size:1.1rem; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud"><span>分數 <b id="score">0</b></span><span>第 <b id="lv">1</b> 關<b id="fl"></b></span><span>🪙 <b id="coins">0</b> ⚡<b id="gods">0</b></span><span>生命 <b id="lives">❤❤❤</b></span></div>
+  <div id="banner"></div>
+  <div id="toast"></div>
+  <div id="left"></div>
+  <button id="mute" aria-label="音效">🔊</button>
+  <div id="overlay">
+    <h1 id="ot">3D 小精靈</h1>
+    <p id="om">方向鍵 / WASD 移動 ・ <b>空白鍵</b> 跳起來閃過鬼</p>
+    <p>吃光所有豆子就過關,共 5 個不同場景,第 N 關有 N 層樓,走到金色圓圈的樓梯就能上下樓;吃大力丸後吃鬼可得 🪙10 元,過關後到商店買愛心或無敵道具(按 <b>E</b> 使用無敵)</p>
+    <p>📱 手機/平板:在畫面上<b>滑動</b>移動、<b>輕點</b>跳躍,也可用左下方向鍵、右下「跳!」和 ⚡ 鈕</p>
+    <div class="go" id="og">點擊或按任意鍵開始</div>
+  </div>
+  <div id="pad">
+    <div class="grp"><span></span><button data-d="u">▲</button><span></span><button data-d="l">◀</button><button data-d="d">▼</button><button data-d="r">▶</button></div>
+    <div class="rb"><button class="god" id="gbtn">⚡</button><button class="jump" id="jbtn">跳!</button></div>
+  </div>
+</div>
+<script>
+const MAP0 = [
+"111111111111111","120000010000021","101110101011101","100000000000001","101011101110101",
+"100010000010001","111010111010111","100000030000001","111010111010111","100010000010001",
+"101011101110101","100000000000001","101110101011101","120000010000021","111111111111111"];
+const W = 15, H = 15, OFF = 7;
+let FL = [MAP0]; // 目前這一關每一層樓的地圖
+const open = (x, z, f = 0) => x >= 0 && z >= 0 && x < W && z < H && FL[f][z][x] !== '1';
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+const wx = x => x - OFF, wz = z => z - OFF;
+let MAP = MAP0;
+function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function genMaze(seed) { // 隨機迷宮:先挖出一條相通的路,再打通幾道牆做出可以繞圈逃跑的路線
+  const r = rng(seed), g = Array.from({ length: 15 }, () => Array(15).fill('1')), stack = [[1, 1]]; g[1][1] = '0';
+  while (stack.length) {
+    const [x, z] = stack[stack.length - 1];
+    const nb = [[2, 0], [-2, 0], [0, 2], [0, -2]].filter(([dx, dz]) => { const a = x + dx, b = z + dz; return a > 0 && b > 0 && a < 14 && b < 14 && g[b][a] === '1'; });
+    if (!nb.length) { stack.pop(); continue; }
+    const [dx, dz] = nb[Math.floor(r() * nb.length)];
+    g[z + dz / 2][x + dx / 2] = '0'; g[z + dz][x + dx] = '0'; stack.push([x + dx, z + dz]);
+  }
+  const walls = [];
+  for (let z = 1; z < 14; z++) for (let x = 1; x < 14; x++) if (g[z][x] === '1' &&
+    ((x % 2 === 0 && z % 2 === 1 && g[z][x - 1] !== '1' && g[z][x + 1] !== '1') || (x % 2 === 1 && z % 2 === 0 && g[z - 1][x] !== '1' && g[z + 1][x] !== '1'))) walls.push([x, z]);
+  for (let i = walls.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [walls[i], walls[j]] = [walls[j], walls[i]]; }
+  walls.slice(0, 13).forEach(([x, z]) => g[z][x] = '0');
+  [[1, 1], [13, 1], [1, 13], [13, 13]].forEach(([x, z]) => g[z][x] = '2');
+  g[7][7] = '3';
+  return g.map(row => row.join(''));
+}
+const GEN_H = [[3, 3], [11, 3], [3, 11], [11, 11]];
+const THEMES = [
+  { name: '霓虹迷宮', bg: 0x05060f, wall: 0x2a47ff, wallE: 0x0a1470, floor: 0x0b0e22, amb: 0x8890c0, deco: 'pillar', dc: 0x35e0e0 },
+  { name: '熔岩洞窟', bg: 0x150604, wall: 0xd9441f, wallE: 0x5a1400, floor: 0x1f0b08, amb: 0xc08060, deco: 'cone', dc: 0xff7a1a },
+  { name: '冰雪世界', bg: 0x0b1d2c, wall: 0x7fd6ff, wallE: 0x1a5a7a, floor: 0x12354a, amb: 0xa8d8f0, deco: 'oct', dc: 0xd8f4ff },
+  { name: '魔幻森林', bg: 0x04100a, wall: 0x2fa84f, wallE: 0x0d4a1c, floor: 0x09190e, amb: 0x80c090, deco: 'tree', dc: 0x1f8f3f },
+  { name: '星際太空', bg: 0x07030f, wall: 0xa04dff, wallE: 0x35106a, floor: 0x0d0618, amb: 0xa090e0, deco: 'star', dc: 0xfff2b0 }
+];
+const FH = 3.2; // 每層樓的高度
+function genLevel(nf, seed, th, ng) { // 第 N 關有 N 層樓;樓梯優先放在四個角落,3 層以上再隨機多加一座
+  const r = rng(seed * 7 + 3), floors = [], stairs = [];
+  for (let f = 0; f < nf; f++) { const m = genMaze(seed + f * 17).map(row => row.split('')); if (f > 0) m[7][7] = '0'; floors.push(m); }
+  const corners = [[1, 1], [13, 1], [1, 13], [13, 13]];
+  for (let i = corners.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [corners[i], corners[j]] = [corners[j], corners[i]]; }
+  for (let f = 0; f < nf - 1; f++) stairs.push({ f, x: corners[f % 4][0], z: corners[f % 4][1] });
+  if (nf >= 3) {
+    const f = Math.floor(r() * (nf - 1)); let x, z, tries = 0;
+    do { x = 1 + 2 * Math.floor(r() * 7); z = 1 + 2 * Math.floor(r() * 7); tries++; }
+    while (tries < 60 && ((x === 7 && z === 7) || corners.concat(GEN_H).some(c => c[0] === x && c[1] === z)));
+    stairs.push({ f, x, z });
+  }
+  stairs.forEach(s => { floors[s.f][s.z][s.x] = '4'; floors[s.f + 1][s.z][s.x] = '4'; }); // 4 = 樓梯格(不放豆子)
+  return { floors, stairs, gh: GEN_H.slice(0, ng).map((h, i) => [h[0], h[1], i % nf]), th };
+}
+const LEVELS = [
+  { floors: [MAP0], stairs: [], gh: [[7, 3, 0], [1, 11, 0], [13, 11, 0]], th: 0 },
+  genLevel(2, 11, 1, 3), genLevel(3, 23, 2, 4), genLevel(4, 37, 3, 4), genLevel(5, 51, 4, 4)
+];
+
+// ---- three.js setup ----
+const wrap = document.getElementById('wrap');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, (window.matchMedia && matchMedia('(pointer:coarse)').matches) ? 1.5 : 2));
+wrap.insertBefore(renderer.domElement, wrap.firstChild);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05060f);
+scene.fog = new THREE.Fog(0x05060f, 10, 26);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 60);
+function resize() { const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+const ambient = new THREE.AmbientLight(0x8890c0, 0.9); scene.add(ambient);
+const plight = new THREE.PointLight(0xfff2b0, 1.2, 14); scene.add(plight);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ color: 0x0b0e22, roughness: 0.9 }));
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a47ff, emissive: 0x0a1470, roughness: 0.4 });
+const wallGeo = new THREE.BoxGeometry(1, 1, 1);
+const worldGroup = new THREE.Group(); scene.add(worldGroup);
+let floorGroups = [], STAIRS = [];
+const _m4 = new THREE.Matrix4();
+const wallMats = [wallMat, wallMat.clone(), wallMat.clone(), wallMat.clone(), wallMat.clone()];
+const stairMat = new THREE.MeshStandardMaterial({ color: 0xffc94d, emissive: 0x8a5a00 });
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd60a, side: THREE.DoubleSide });
+function buildWorld() {
+  worldGroup.clear(); floorGroups = [];
+  for (let f = 0; f < FL.length; f++) {
+    const g = new THREE.Group(); g.position.y = f * FH;
+    if (f > 0) { // 上層樓板:樓梯口留洞,可以看到底下的階梯
+      const sh = new THREE.Shape(); sh.moveTo(-W / 2, -H / 2); sh.lineTo(W / 2, -H / 2); sh.lineTo(W / 2, H / 2); sh.lineTo(-W / 2, H / 2); sh.lineTo(-W / 2, -H / 2);
+      STAIRS.filter(s => s.f === f - 1).forEach(s => {
+        const cx = wx(s.x), cy = -wz(s.z), p = new THREE.Path();
+        p.moveTo(cx - .5, cy - .5); p.lineTo(cx - .5, cy + .5); p.lineTo(cx + .5, cy + .5); p.lineTo(cx + .5, cy - .5); p.lineTo(cx - .5, cy - .5); sh.holes.push(p);
+      });
+      const fm = new THREE.Mesh(new THREE.ShapeGeometry(sh), floor.material); fm.rotation.x = -Math.PI / 2; g.add(fm);
+    }
+    const wpos = []; for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) if (FL[f][z][x] === '1') wpos.push([x, z]);
+    const wm = new THREE.InstancedMesh(wallGeo, wallMats[f], Math.max(1, wpos.length)); wm.frustumCulled = false; wm.count = wpos.length;
+    wpos.forEach(([x, z], i) => { _m4.makeScale(0.96, 1, 0.96); _m4.setPosition(wx(x), 0.5, wz(z)); wm.setMatrixAt(i, _m4); });
+    wm.instanceMatrix.needsUpdate = true; g.add(wm);
+    STAIRS.forEach(s => {
+      if (s.f === f) { // 往上的階梯
+        const sg = new THREE.Group(); sg.position.set(wx(s.x), 0, wz(s.z));
+        for (let i = 0; i < 8; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(.9, .1, .125), stairMat); b.position.set(0, (i + 1) * FH / 8, .5 - (i + .5) / 8); sg.add(b); }
+        g.add(sg);
+      }
+      if (s.f === f || s.f + 1 === f) { const rg = new THREE.Mesh(new THREE.RingGeometry(.32, .46, 24), ringMat); rg.rotation.x = -Math.PI / 2; rg.position.set(wx(s.x), 0.03, wz(s.z)); g.add(rg); }
+    });
+    worldGroup.add(g); floorGroups.push(g);
+  }
+}
+const decoGroup = new THREE.Group(); scene.add(decoGroup);
+function buildDeco(t) { // 迷宮外圍的場景裝飾
+  decoGroup.clear(); const lit = new THREE.MeshStandardMaterial({ color: t.dc, emissive: t.dc, emissiveIntensity: .45, roughness: .5 });
+  for (let i = 0; i < 48; i++) {
+    let x, z; do { x = (Math.random() - .5) * 36; z = (Math.random() - .5) * 36; } while (Math.abs(x) < 8.8 && Math.abs(z) < 8.8);
+    let m;
+    if (t.deco === 'pillar') { const h = 1 + Math.random() * 4; m = new THREE.Mesh(new THREE.BoxGeometry(.4, h, .4), lit); m.position.y = h / 2; }
+    else if (t.deco === 'cone') { const h = 2 + Math.random() * 2; m = new THREE.Mesh(new THREE.ConeGeometry(.7, h, 8), lit); m.position.y = h / 2; }
+    else if (t.deco === 'oct') { m = new THREE.Mesh(new THREE.OctahedronGeometry(.5 + Math.random() * .6), lit); m.position.y = .6 + Math.random() * 2.5; m.rotation.set(Math.random() * 3, Math.random() * 3, 0); }
+    else if (t.deco === 'tree') { m = new THREE.Group(); const k = new THREE.Mesh(new THREE.CylinderGeometry(.15, .15, .8, 8), new THREE.MeshStandardMaterial({ color: 0x6b4423 })); k.position.y = .4; const c = new THREE.Mesh(new THREE.ConeGeometry(.75, 1.8, 8), lit); c.position.y = 1.6; m.add(k, c); }
+    else { m = new THREE.Mesh(new THREE.SphereGeometry(.08 + Math.random() * .12, 8, 8), new THREE.MeshBasicMaterial({ color: t.dc })); m.position.y = 1 + Math.random() * 6; }
+    m.position.x = x; m.position.z = z; decoGroup.add(m);
+  }
+}
+function applyTheme(i) {
+  const t = THEMES[i];
+  scene.background.setHex(t.bg); scene.fog.color.setHex(t.bg); floor.material.color.setHex(t.floor); ambient.color.setHex(t.amb);
+  wallMats.forEach((m, f) => { m.color.setHex(t.wall); m.color.offsetHSL(0, 0, f * 0.04); m.emissive.setHex(t.wallE); }); buildDeco(t);
+}
+
+// pellets
+const pelletGroup = new THREE.Group(); scene.add(pelletGroup);
+const pMat = new THREE.MeshStandardMaterial({ color: 0xffe9a8, emissive: 0x9a7b20 });
+const bMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xff9f1c });
+let pellets = new Map(), floorLeft = [], pelletMeshes = [], bigList = [];
+const pGeo = new THREE.SphereGeometry(0.1, 8, 6), bGeo = new THREE.SphereGeometry(0.26, 12, 10);
+function setInst(mesh, i, x, y, z, sc) { _m4.makeScale(sc, sc, sc); _m4.setPosition(x, y, z); mesh.setMatrixAt(i, _m4); mesh.instanceMatrix.needsUpdate = true; }
+function hidePellet(e) { setInst(e.mesh, e.i, 0, -50, 0, 0.0001); e.dead = true; }
+function buildPellets() {
+  pelletGroup.clear(); pellets.clear(); pelletMeshes = []; bigList = []; floorLeft = FL.map(() => 0);
+  for (let f = 0; f < FL.length; f++) {
+    const sm = [], bg = [];
+    for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) { const c = FL[f][z][x]; if (c === '1' || c === '3' || c === '4') continue; (c === '2' ? bg : sm).push([x, z]); }
+    const small = new THREE.InstancedMesh(pGeo, pMat, Math.max(1, sm.length)), big = new THREE.InstancedMesh(bGeo, bMat, Math.max(1, bg.length));
+    small.frustumCulled = big.frustumCulled = false; small.userData.f = big.userData.f = f; small.count = sm.length; big.count = bg.length;
+    sm.forEach(([x, z], i) => { setInst(small, i, wx(x), f * FH + 0.4, wz(z), 1); pellets.set(f + ',' + x + ',' + z, { mesh: small, i, big: false, x, z, f }); floorLeft[f]++; });
+    bg.forEach(([x, z], i) => { setInst(big, i, wx(x), f * FH + 0.4, wz(z), 1); const e = { mesh: big, i, big: true, x, z, f }; pellets.set(f + ',' + x + ',' + z, e); bigList.push(e); floorLeft[f]++; });
+    pelletGroup.add(small); pelletGroup.add(big); pelletMeshes.push(small, big);
+  }
+}
+
+// pac-man
+const pacMesh = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 18), new THREE.MeshStandardMaterial({ color: 0xffd60a, emissive: 0x6b5400 }));
+scene.add(pacMesh);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.35, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; scene.add(shadow);
+
+// ghosts
+const GCOL = [0xff3b3b, 0xff8fd1, 0x35e0e0, 0xffa83a];
+function makeGhost(color) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.4, 16), mat); body.position.y = 0.3;
+  const top = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat); top.position.y = 0.5;
+  const eyeM = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeM); e.position.set(s * 0.14, 0.58, 0.28); g.add(e); }
+  g.add(body, top); g.userData.mat = mat; g.userData.color = color; scene.add(g); return g;
+}
+const ghostMeshes = GCOL.map(makeGhost);
+
+// ---- game state ----
+let GHOME = LEVELS[0].gh;
+function mover(x, z, f) { f = f || 0; return { x, z, tx: x, tz: z, t: 1, dx: 0, dz: 0, f, ey: f * FH, cl: 0, lock: '' }; }
+const mpos = m => ({ x: m.x + (m.tx - m.x) * m.t, z: m.z + (m.tz - m.z) * m.t });
+function step(m, dist, choose) {
+  while (dist > 0) {
+    if (m.t >= 1) {
+      m.x = m.tx; m.z = m.tz;
+      const d = choose(m); if (!d) { m.t = 1; return; }
+      m.dx = d[0]; m.dz = d[1]; m.tx = m.x + d[0]; m.tz = m.z + d[1]; m.t = 0;
+    }
+    const use = Math.min(1 - m.t, dist); m.t += use; dist -= use;
+  }
+}
+let pac, ghosts, score, lives, state = 'ready', scared = 0, invuln = 0, want = [0, 0], py = 0, vy = 0, remaining = 0;
+// ---- 音樂(程式即時合成,按 M 鍵可靜音)----
+let actx = null, muted = false, warned = false;
+function toggleMute() { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; }
+function unlockAudio() { // iPhone/iPad:第一次觸碰時解鎖聲音,之後才能自動播放音效
+  const c = ac(); if (!c) return;
+  try { const src = c.createBufferSource(); src.buffer = c.createBuffer(1, 1, 22050); src.connect(c.destination); src.start(0); } catch (e) {}
+  if (c.state === 'running') ['pointerdown', 'touchend', 'keydown'].forEach(ev => removeEventListener(ev, unlockAudio));
+}
+['pointerdown', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, unlockAudio));
+function ac() { try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; } catch (e) { return null; } }
+function tone(c, f, st, dur, type, vol, slideTo, lp) {
+  const t = c.currentTime + st, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  let out = o; if (lp) { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = lp; o.connect(fl); out = fl; }
+  out.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + .02);
+}
+function powerMusic() { // 吃到大力丸:激昂快節奏
+  if (muted) return; const c = ac(); if (!c) return;
+  const seq = [220, 261.63, 329.63, 440, 523.25, 659.25, 880, 659.25, 880, 1046.5, 880, 1318.5];
+  seq.forEach((f, i) => { tone(c, f, i * .11, .1, 'square', .08, 0, 3000); tone(c, f / 2, i * .11, .1, 'sawtooth', .06, 0, 1500); });
+  for (let i = 0; i < 6; i++) tone(c, 150, i * .22, .14, 'sine', .35, 45);
+  tone(c, 1318.5, 1.32, .5, 'square', .09, 0, 3000); tone(c, 659.25, 1.32, .5, 'sawtooth', .07, 0, 1500);
+}
+function sadMusic() { // 力量快消失:失望的下滑音
+  if (muted) return; const c = ac(); if (!c) return;
+  tone(c, 330, 0, .3, 'sawtooth', .12, 0, 900); tone(c, 311, .32, .3, 'sawtooth', .12, 0, 800); tone(c, 294, .64, .85, 'sawtooth', .13, 185, 700);
+}
+let wakaT = 0, wakaN = 0;
+function waka() { // 移動時的經典「阿巴阿巴」:兩個音高交替
+  if (muted) return; const c = ac(); if (!c) return;
+  wakaN++;
+  if (wakaN % 2) tone(c, 520, 0, .09, 'triangle', .1, 260, 2500); else tone(c, 260, 0, .09, 'triangle', .1, 520, 2500);
+}
+function eatGhostSound() { // 吃到鬼:明亮的上升音 + 三顆星星音
+  if (muted) return; const c = ac(); if (!c) return;
+  tone(c, 200, 0, .32, 'square', .09, 1500, 4000);
+  [880, 1174.7, 1568].forEach((f, i) => tone(c, f, .32 + i * .07, .09, 'triangle', .12, 0, 5000));
+}
+function deathSound() { // 被鬼抓到:下墜的哀鳴 + 三聲悶悶的破裂音
+  if (muted) return; const c = ac(); if (!c) return;
+  for (let i = 0; i < 8; i++) tone(c, 880 * Math.pow(.8, i), i * .07, .08, 'sawtooth', .1, 880 * Math.pow(.8, i + 1), 2500);
+  [0, .13].forEach(o => tone(c, 160, .58 + o, .1, 'sine', .32, 50));
+  tone(c, 75, .8, .25, 'sawtooth', .12, 42, 300);
+}
+function stairSound() { // 爬樓梯:一階一階往上的短音
+  if (muted) return; const c = ac(); if (!c) return;
+  for (let i = 0; i < 5; i++) tone(c, 440 * Math.pow(1.19, i), i * .07, .08, 'triangle', .09, 0, 4000);
+}
+function coinSound(off) { // 金幣「叮噹」
+  if (muted) return; const c = ac(); if (!c) return; off = off || 0;
+  tone(c, 988, off, .07, 'square', .09, 0, 4000); tone(c, 1319, off + .07, .32, 'square', .09, 0, 4000);
+}
+function failSound() { // 買不起/不能買
+  if (muted) return; const c = ac(); if (!c) return;
+  tone(c, 180, 0, .12, 'square', .12, 120, 1200); tone(c, 180, .16, .12, 'square', .12, 120, 1200);
+}
+function godSound() { // 啟動無敵:往上閃耀的音
+  if (muted) return; const c = ac(); if (!c) return;
+  tone(c, 400, 0, .4, 'sawtooth', .08, 1600, 3000); tone(c, 800, .12, .35, 'triangle', .09, 2400, 5000);
+}
+function toast(t) {
+  const b = document.getElementById('toast'); b.textContent = t;
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+}
+function shopHtml() {
+  return `分數:<b style="color:#ffd60a">${score}</b>
+    <div class="shop">
+      <div class="sl">🪙 <b id="sCoins">${coins}</b> 元 ・ 愛心 <b id="sLives">${lives}</b>/5 ・ 無敵道具 <b id="sGods">${godItems}</b> 個</div>
+      <button data-buy="heart">❤️ 買 1 顆愛心 <i>100 元</i></button>
+      <button data-buy="god">⚡ 無敵 5 秒(可穿過鬼) <i>50 元</i></button>
+      <div class="sm" id="sMsg">遊戲中按 E 鍵(手機按 ⚡)使用無敵道具</div>
+    </div>`;
+}
+function refreshShop() {
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('sCoins', coins); set('sLives', lives); set('sGods', godItems);
+}
+function buy(k) {
+  if (state !== 'next') return;
+  const m = document.getElementById('sMsg'), cost = k === 'heart' ? 100 : 50;
+  if (k === 'heart' && lives >= 5) { m.textContent = '愛心已經滿了(上限 5 顆)'; failSound(); return; }
+  if (coins < cost) { m.textContent = `金幣不夠,還差 ${cost - coins} 元`; failSound(); return; }
+  coins -= cost; if (k === 'heart') lives++; else godItems++;
+  m.textContent = k === 'heart' ? '❤️ 買到 1 顆愛心!' : '⚡ 買到 1 個無敵道具!';
+  coinSound(); updateHud(); refreshShop();
+}
+function useGod() {
+  if (state !== 'play') return;
+  if (godT > 0) { toast('⚡ 無敵還在生效中'); return; }
+  if (godItems <= 0) { toast('沒有無敵道具了'); return; }
+  godItems--; godT = 5; godSound(); toast('⚡ 無敵 5 秒!'); updateHud();
+}
+function resetPositions() {
+  pac = mover(7, 7); want = [0, 0]; py = 0; vy = 0;
+  ghosts = GHOME.map(h => mover(h[0], h[1], h[2] || 0));
+}
+let level = 0, coins = 0, godItems = 0, godT = 0;
+function loadLevel() {
+  const L = LEVELS[level]; FL = L.floors; STAIRS = L.stairs; GHOME = L.gh; applyTheme(L.th); buildWorld();
+  scared = 0; invuln = 0; godT = 0; buildPellets(); remaining = pellets.size; resetPositions();
+  ghostMeshes.forEach((m, i) => { m.visible = i < GHOME.length; }); updateHud();
+}
+function newGame() { score = 0; lives = 3; level = 0; coins = 0; godItems = 0; godT = 0; loadLevel(); }
+function showBanner() {
+  const b = document.getElementById('banner'); b.textContent = `第 ${level + 1} 關 ・ ${THEMES[LEVELS[level].th].name}` + (FL.length > 1 ? `(${FL.length} 層樓)` : '');
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+}
+function updateHud() {
+  const lf = document.getElementById('left');
+  if (pac && floorLeft.length) { const n = floorLeft[pac.f] || 0; lf.innerHTML = (n > 0 ? `本層剩 <b>${n}</b> 顆豆子` : '本層已清完 ✅') + (FL.length > 1 ? `<br>全關剩 <b>${remaining}</b> 顆` : ''); } document.getElementById('lv').textContent = level + 1; document.getElementById('fl').textContent = FL.length > 1 && pac ? ` ・${pac.f + 1}/${FL.length}層` : ''; document.getElementById('coins').textContent = coins; document.getElementById('gods').textContent = godItems; document.getElementById('score').textContent = score; document.getElementById('lives').textContent = '❤'.repeat(Math.max(lives, 0)) || '—'; }
+
+let lockUntil = 0; // 過關/結束畫面剛出現時,先擋住按鍵連發,避免一閃而過
+function showOverlay(title, msg, btn) {
+  lockUntil = Date.now() + 900; document.body.classList.add('ovl');
+  document.getElementById('ot').textContent = title; document.getElementById('om').innerHTML = msg;
+  document.getElementById('og').textContent = btn; document.getElementById('overlay').style.display = 'flex';
+}
+function start() {
+  if (state === 'play' || Date.now() < lockUntil) return;
+  const wasDead = state === 'dead';
+  if (wasDead) { resetPositions(); invuln = 1.8; } else if (state === 'next') { level++; loadLevel(); } else if (state !== 'paused') newGame();
+  state = 'play'; document.getElementById('overlay').style.display = 'none'; document.body.classList.remove('ovl'); if (!wasDead) showBanner();
+}
+
+// ---- input ----
+const KEYS = { ArrowUp: [0, -1], w: [0, -1], W: [0, -1], ArrowDown: [0, 1], s: [0, 1], S: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0], ArrowRight: [1, 0], d: [1, 0], D: [1, 0] };
+function setWant(d) {
+  want = d;
+  if (pac.t < 1 && (d[0] === -pac.dx && d[1] === -pac.dz) && (d[0] || d[1])) {
+    [pac.x, pac.tx] = [pac.tx, pac.x]; [pac.z, pac.tz] = [pac.tz, pac.z]; pac.t = 1 - pac.t; pac.dx = -pac.dx; pac.dz = -pac.dz;
+  }
+}
+function jump() { if (state === 'play' && py <= 0.001) vy = 9; }
+addEventListener('keydown', e => {
+  if (e.key === 'm' || e.key === 'M') { toggleMute(); return; }
+  if (e.key === 'e' || e.key === 'E') { useGod(); return; }
+  if (state === 'next' && e.code !== 'Space' && e.key !== 'Enter') return;
+  if (e.code === 'Space') { e.preventDefault(); if (state !== 'play') start(); else jump(); return; }
+  if (KEYS[e.key]) { e.preventDefault(); if (state !== 'play') start(); setWant(KEYS[e.key]); return; }
+  if (state !== 'play' && e.key.length === 1) start();
+});
+document.getElementById('overlay').addEventListener('click', e => {
+  const b = e.target.closest('[data-buy]');
+  if (b) { e.stopPropagation(); buy(b.dataset.buy); return; }
+  if (e.target.closest('.shop')) return;
+  start();
+});
+const PAD = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
+document.querySelectorAll('#pad [data-d]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'play') start(); setWant(PAD[b.dataset.d]); }));
+document.getElementById('jbtn').addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'play') start(); else jump(); });
+document.getElementById('gbtn').addEventListener('pointerdown', e => { e.preventDefault(); useGod(); });
+document.getElementById('mute').addEventListener('pointerdown', e => { e.preventDefault(); toggleMute(); });
+// 觸控手勢:在畫面上滑動 = 改變方向,輕點 = 跳
+let sw = null; const cv = renderer.domElement; cv.style.touchAction = 'none';
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse') return;
+  sw = { x: e.clientX, y: e.clientY, t: Date.now(), noJump: state !== 'play' };
+  if (state !== 'play') start();
+});
+cv.addEventListener('pointermove', e => {
+  if (!sw) return;
+  const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+  if (Math.hypot(dx, dy) < 22) return;
+  setWant(Math.abs(dx) > Math.abs(dy) ? [dx > 0 ? 1 : -1, 0] : [0, dy > 0 ? 1 : -1]);
+  sw.x = e.clientX; sw.y = e.clientY; sw.noJump = true;
+});
+cv.addEventListener('pointerup', e => { if (sw && !sw.noJump && Date.now() - sw.t < 250) jump(); sw = null; });
+cv.addEventListener('pointercancel', () => { sw = null; });
+
+// ---- logic ----
+const choosePac = m => {
+  if (want[0] || want[1]) { if (open(m.x + want[0], m.z + want[1], m.f)) return want; }
+  if ((m.dx || m.dz) && open(m.x + m.dx, m.z + m.dz, m.f)) return [m.dx, m.dz];
+  return null;
+};
+function chooseGhost(m) {
+  let opts = DIRS.filter(d => open(m.x + d[0], m.z + d[1], m.f));
+  const fwd = opts.filter(d => !(d[0] === -m.dx && d[1] === -m.dz));
+  if (fwd.length) opts = fwd;
+  if (!opts.length) return null;
+  if (scared > 0 || Math.random() < (m.f === pac.f ? 0.35 : 0.1)) return opts[Math.floor(Math.random() * opts.length)];
+  let p = mpos(pac);
+  if (m.f !== pac.f) { // 玩家在別層:先跑去通往玩家那一層的樓梯
+    const up = pac.f > m.f; let bs = null, bdd = 1e9;
+    STAIRS.forEach(s => { if (up ? s.f === m.f : s.f + 1 === m.f) { const dd = Math.abs(s.x - m.x) + Math.abs(s.z - m.z); if (dd < bdd) { bdd = dd; bs = s; } } });
+    if (bs) {
+      p = { x: bs.x, z: bs.z };
+      const dm = bfsDist(m.f, bs.x, bs.z); let bb = null, bv = 1e9;
+      DIRS.forEach(o => { const v = dm.get((m.x + o[0]) + ',' + (m.z + o[1])); if (v !== undefined && v < bv) { bv = v; bb = o; } });
+      if (bb) return bb;
+    }
+  }
+  let best = opts[0], bd = 1e9;
+  for (const d of opts) { const dd = (m.x + d[0] - p.x) ** 2 + (m.z + d[1] - p.z) ** 2; if (dd < bd) { bd = dd; best = d; } }
+  return best;
+}
+function hit() { // 被鬼抓到:畫面停住約 1 秒並播放音樂,之後按任意鍵才繼續
+  lives--; updateHud(); deathSound();
+  const dead = lives <= 0;
+  state = dead ? 'over' : 'dead';
+  showOverlay(dead ? '遊戲結束' : '💔 被鬼抓到了!', dead ? `最終分數:<b style="color:#ffd60a">${score}</b>` : `還剩 ${lives} 顆愛心`, '…');
+  lockUntil = Date.now() + 1000;
+  setTimeout(() => { if (state === 'dead' || state === 'over') document.getElementById('og').textContent = dead ? '再玩一次(按任意鍵)' : '按任意鍵繼續'; }, 1000);
+}
+function respawnGhost(i) { // 被吃掉的鬼會在隨機的新位置(可能是別層)重生,且離玩家至少 6 格
+  const gp = mpos(pac);
+  for (let t = 0; t < 80; t++) {
+    const f = Math.floor(Math.random() * FL.length), x = 1 + 2 * Math.floor(Math.random() * 7), z = 1 + 2 * Math.floor(Math.random() * 7);
+    if (FL[f][z][x] === '1' || FL[f][z][x] === '4') continue;
+    if (f === pac.f && Math.abs(x - gp.x) + Math.abs(z - gp.z) < 6) continue;
+    if (ghosts.some((g, j) => j !== i && g.f === f && Math.abs(g.x - x) + Math.abs(g.z - z) < 2)) continue;
+    return mover(x, z, f);
+  }
+  return mover(GHOME[i][0], GHOME[i][1], GHOME[i][2] || 0);
+}
+function bfsDist(f, gx, gz) { // 這一層從某格出發到每格的最短步數(讓鬼能準確走到樓梯)
+  const d = new Map([[gx + ',' + gz, 0]]), q = [[gx, gz]];
+  for (let i = 0; i < q.length; i++) {
+    const [x, z] = q[i], k = d.get(x + ',' + z);
+    for (const [dx, dz] of DIRS) { const a = x + dx, b = z + dz, kk = a + ',' + b; if (open(a, b, f) && !d.has(kk)) { d.set(kk, k + 1); q.push([a, b]); } }
+  }
+  return d;
+}
+function stairHere(m) { // 走到樓梯格的中心時,回傳要去的樓層
+  if (m.cl > 0) return null;
+  const p = mpos(m), rx = Math.round(p.x), rz = Math.round(p.z);
+  if (Math.hypot(p.x - rx, p.z - rz) > 0.25) return null;
+  const key = rx + ',' + rz;
+  if (m.lock && m.lock !== key) m.lock = '';
+  if (m.lock === key) return null;
+  for (const s of STAIRS) if (s.x === rx && s.z === rz) { if (s.f === m.f) return { nf: m.f + 1, key, rx, rz }; if (s.f + 1 === m.f) return { nf: m.f - 1, key, rx, rz }; }
+  return null;
+}
+function snapTo(m, st) { m.x = m.tx = st.rx; m.z = m.tz = st.rz; m.t = 1; }
+function update(dt) {
+  if (pac.cl <= 0) step(pac, dt * 4.2, choosePac);
+  if (pac.t < 1) { wakaT -= dt; if (wakaT <= 0) { waka(); wakaT = .15; } }
+  ghosts.forEach((g, i) => { if (g.cl <= 0) step(g, dt * (scared > 0 ? 2.2 : 3.0 + i * 0.15 + level * 0.2), chooseGhost); });
+  [pac].concat(ghosts).forEach(m => { m.cl = Math.max(0, m.cl - dt); m.ey += (m.f * FH - m.ey) * Math.min(1, dt * 7); });
+  const sp = stairHere(pac);
+  if (sp) { snapTo(pac, sp); pac.f = sp.nf; pac.cl = .45; pac.lock = sp.key; stairSound(); updateHud(); }
+  ghosts.forEach(g => {
+    const sg = stairHere(g);
+    if (sg && (g.f !== pac.f && (pac.f > g.f) === (sg.nf > g.f) || Math.random() < 0.02)) { snapTo(g, sg); g.f = sg.nf; g.cl = .45; g.lock = sg.key; }
+  });
+  vy -= 20 * dt; py += vy * dt; if (py < 0) { py = 0; vy = 0; }
+  scared = Math.max(0, scared - dt); invuln = Math.max(0, invuln - dt); godT = Math.max(0, godT - dt);
+  document.getElementById('gods').textContent = godT > 0 ? godT.toFixed(1) + 's' : godItems;
+  if (scared > 0 && scared < 1.8 && !warned) { warned = true; sadMusic(); }
+  const p = mpos(pac), key = pac.f + ',' + Math.round(p.x) + ',' + Math.round(p.z), pel = pellets.get(key);
+  if (pel && Math.hypot(p.x - Math.round(p.x), p.z - Math.round(p.z)) < 0.45) {
+    hidePellet(pel); pellets.delete(key); floorLeft[pac.f]--; score += pel.big ? 50 : 10; remaining--;
+    if (pel.big) { scared = 6; warned = false; powerMusic(); } updateHud();
+    if (remaining <= 0) { state = level < LEVELS.length - 1 ? 'next' : 'over'; showOverlay(level < LEVELS.length - 1 ? `第 ${level + 1} 關完成!🎉` : '🏆 全部通關!', level < LEVELS.length - 1 ? shopHtml() : `分數:<b style="color:#ffd60a">${score}</b>`, level < LEVELS.length - 1 ? `進入第 ${level + 2} 關` : '再玩一次'); return; }
+  }
+  ghosts.forEach((g, i) => {
+    const gp = mpos(g);
+    if (g.f === pac.f && Math.hypot(gp.x - p.x, gp.z - p.z) < 0.62 && py < 0.55) {
+      if (scared > 0) { score += 200; coins += 10; coinSound(.45); toast('🪙 +10 元'); updateHud(); eatGhostSound(); ghosts[i] = respawnGhost(i); }
+      else if (invuln <= 0 && godT <= 0 && state === 'play') hit();
+    }
+  });
+}
+const camPos = new THREE.Vector3(0, 9, 8), camLook = new THREE.Vector3();
+let time = 0;
+function render(dt) {
+  if (state !== 'dead' && state !== 'over') time += dt;
+  const p = mpos(pac);
+  floorGroups.forEach((g, f) => { g.visible = f <= pac.f; });
+  pacMesh.position.set(wx(p.x), 0.42 + pac.ey + py, wz(p.z));
+  const chomp = 1 + Math.sin(time * 18) * 0.08 * (state === 'play' ? 1 : 0.2);
+  pacMesh.scale.set(chomp, 1 / chomp, chomp);
+  pacMesh.visible = invuln <= 0 || Math.floor(time * 12) % 2 === 0;
+  const pm = pacMesh.material, god = godT > 0;
+  if (pm.transparent !== god) { pm.transparent = god; pm.needsUpdate = true; }
+  pm.opacity = god ? (godT < 1 && Math.floor(time * 10) % 2 ? .25 : .5) : 1; pm.emissive.setHex(god ? 0x2a7fff : 0x6b5400);
+  shadow.position.set(wx(p.x), pac.ey + 0.02, wz(p.z)); shadow.scale.setScalar(Math.max(0.4, 1 - py * 0.35));
+  ghosts.forEach((g, i) => {
+    const gp = mpos(g), gm = ghostMeshes[i], mat = gm.userData.mat;
+    gm.position.set(wx(gp.x), g.ey + 0.05 + Math.sin(time * 6 + i) * 0.04, wz(gp.z)); gm.visible = g.f <= pac.f;
+    if (g.dx || g.dz) gm.rotation.y = Math.atan2(g.dx, g.dz);
+    const flash = scared > 0 && scared < 1.8 && Math.floor(time * 8) % 2 === 0;
+    const c = scared > 0 ? (flash ? 0xffffff : 0x2f4bff) : gm.userData.color;
+    mat.color.setHex(c); mat.emissive.setHex(c);
+  });
+  pelletMeshes.forEach(o => { o.visible = o.userData.f <= pac.f; });
+  const bs = 1 + Math.sin(time * 6) * 0.15; bigList.forEach(e => { if (!e.dead && e.f <= pac.f) setInst(e.mesh, e.i, wx(e.x), e.f * FH + 0.4, wz(e.z), bs); });
+  plight.position.set(wx(p.x), pac.ey + 2.5, wz(p.z));
+  const tx = wx(p.x), tz = wz(p.z);
+  camPos.lerp(new THREE.Vector3(tx * 0.9, 6.2 + pac.ey + py * 0.3, tz + 6.4), Math.min(1, dt * 4));
+  camLook.lerp(new THREE.Vector3(tx, 0.4 + pac.ey + py * 0.5, tz - 1.2), Math.min(1, dt * 6));
+  camera.position.copy(camPos); camera.lookAt(camLook);
+  renderer.render(scene, camera);
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (state === 'play') update(dt);
+  render(dt); requestAnimationFrame(loop);
+}
+newGame(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
