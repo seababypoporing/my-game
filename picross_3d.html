@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>3D 數織 Picross 3D</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { --bg:#141a28; --card:#1e2638; --fg:#eef1f8; --muted:#97a1b8; --rule:#34405a; --accent:#ffb23f; --accent-fg:#241600; color-scheme: dark; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  #app { position:fixed; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  #top { padding:8px 12px 4px; display:flex; justify-content:space-between; align-items:center; gap:8px; font-weight:700; font-size:.95rem; }
+  #top span b { color:var(--accent); font-variant-numeric:tabular-nums; }
+  #msg { min-height:1.5em; padding:0 12px 4px; text-align:center; color:var(--muted); font-size:.85rem; }
+  #stage { position:relative; flex:1; min-height:200px; touch-action:none; }
+  #stage canvas { position:absolute; top:0; left:0; width:100%; height:100%; display:block; touch-action:none; }
+  #bar { padding:8px 10px 10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .btn { border:1px solid var(--rule); background:var(--card); color:var(--fg); border-radius:12px; padding:11px 14px; font-size:.95rem; cursor:pointer; font-family:inherit; }
+  .btn.tool { flex:1 1 120px; font-weight:800; font-size:1.05rem; padding:13px 10px; }
+  .btn.tool.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+  .btn.sm { padding:8px 11px; font-size:.82rem; }
+  .ov { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(8,11,20,.86); display:flex; align-items:center; justify-content:center; padding:18px; z-index:9; overflow:auto; }
+  .box { background:var(--card); border:1px solid var(--rule); border-radius:18px; padding:22px 20px; max-width:420px; width:100%; text-align:center; }
+  .box h1, .box h2 { margin:0 0 8px; } .box p { margin:6px 0; color:var(--muted); line-height:1.6; font-size:.9rem; }
+  .sizes { display:flex; gap:8px; margin:14px 0; } .sizes .btn { flex:1; font-weight:800; font-size:1.05rem; }
+  .sizes .btn.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+  .legend { text-align:left; margin:12px 0; padding:12px; border:1px solid var(--rule); border-radius:12px; font-size:.86rem; line-height:1.9; color:var(--muted); }
+  .legend i { display:inline-block; min-width:26px; height:26px; line-height:22px; text-align:center; font-style:normal; font-weight:800; color:#fff; margin-right:8px; vertical-align:middle; }
+  .go { width:100%; margin-top:8px; background:var(--accent); color:var(--accent-fg); border:none; font-weight:800; font-size:1.1rem; padding:14px; border-radius:12px; cursor:pointer; font-family:inherit; }
+  button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top"><span>⏱ <b id="time">00:00</b></span><span>剩 <b id="left">0</b> 塊要敲</span><span>失誤 <b id="mis">0</b></span></div>
+  <div id="msg"></div>
+  <div id="stage"></div>
+  <div id="bar">
+    <button class="btn tool on" id="tChisel">🔨 敲掉</button>
+    <button class="btn tool" id="tPaint">🎨 塗色</button>
+    <button class="btn sm" id="bView">🔄 重置視角</button>
+    <button class="btn sm" id="bAgain">↻ 重玩</button>
+    <button class="btn sm" id="bNew">🎲 新題目</button>
+    <button class="btn sm" id="bSnd">🔊</button>
+    <button class="btn sm" id="bHome">⚙ 選單</button>
+  </div>
+</div>
+
+<div class="ov" id="start"><div class="box">
+  <h1>🧊 3D 數織</h1>
+  <p>把方塊一塊塊敲掉,雕出隱藏的立體圖案!</p>
+  <div class="sizes" id="sizes"><button class="btn" data-n="3">3×3×3<br><small>入門</small></button><button class="btn on" data-n="4">4×4×4<br><small>簡單</small></button><button class="btn" data-n="5">5×5×5<br><small>普通</small></button><button class="btn" data-n="6">6×6×6<br><small>困難</small></button></div>
+  <div class="legend">
+    <div><i style="background:#2a3b66;border-radius:4px">3</i>這一排(橫、直、層)<b>剩下 3 塊</b>,而且連在一起</div>
+    <div><i style="border:3px solid #ff7a45;border-radius:50%;color:#ff7a45;line-height:20px">3</i>剩下 3 塊,但分成<b>兩段</b></div>
+    <div><i style="border:3px solid #b07bff;color:#b07bff;line-height:20px">4</i>剩下 4 塊,分成<b>三段以上</b></div>
+    <div><i style="background:#555;border-radius:4px">0</i>這一排全部要敲掉</div>
+    <div>🔨 敲掉:確定是多餘的方塊 ・ 🎨 塗色:確定要留下的方塊</div>
+    <div>敲錯或塗錯會失誤,每次加 30 秒。拖曳旋轉、滾輪/雙指縮放、點方塊操作(電腦可按右鍵用另一個工具)。</div>
+  </div>
+  <button class="go" id="go">開始遊戲</button>
+</div></div>
+
+<div class="ov" id="win" style="display:none"><div class="box">
+  <h2>🎉 完成!</h2><p id="winp"></p>
+  <button class="go" id="w1">新題目</button><button class="btn" style="width:100%;margin-top:8px" id="w2">欣賞作品(關閉視窗)</button>
+</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const pc = x => { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; };
+const runs = (m, n) => { let g = 0, prev = 0; for (let i = 0; i < n; i++) { const b = (m >> i) & 1; if (b && !prev) g++; prev = b; } return g; };
+const kindOf = (cnt, g) => cnt === 0 ? 0 : g <= 1 ? 1 : g === 2 ? 2 : 3;
+const patCache = new Map();
+function getPats(n, cnt, kind) {
+  const key = n + ',' + cnt + ',' + kind; let p = patCache.get(key);
+  if (!p) { p = []; for (let m = 0; m < (1 << n); m++) if (pc(m) === cnt && kindOf(cnt, runs(m, n)) === kind) p.push(m); patCache.set(key, p); }
+  return p;
+}
+const lineIdx = (n, axis, a, b) => Array.from({ length: n }, (_, i) => axis === 0 ? (i * n + a) * n + b : axis === 1 ? (a * n + i) * n + b : (a * n + b) * n + i);
+
+// ---------- 題目:隨機立體圖案 + 保證能靠邏輯解開 ----------
+function computeClues(g, n) {
+  const cl = [[], [], []];
+  for (let axis = 0; axis < 3; axis++) for (let a = 0; a < n; a++) { cl[axis][a] = []; for (let b = 0; b < n; b++) {
+    const idx = lineIdx(n, axis, a, b); let m = 0; idx.forEach((ix, i) => { if (g[ix]) m |= 1 << i; });
+    cl[axis][a][b] = { cnt: pc(m), kind: kindOf(pc(m), runs(m, n)) };
+  } }
+  return cl;
+}
+function solvable(g, n) {
+  const cl = computeClues(g, n), st = new Int8Array(n * n * n).fill(-1), full = (1 << n) - 1; let changed = true;
+  while (changed) {
+    changed = false;
+    for (let axis = 0; axis < 3; axis++) for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+      const idx = lineIdx(n, axis, a, b), c = cl[axis][a][b]; let k1 = 0, k0 = 0;
+      idx.forEach((ix, i) => { if (st[ix] === 1) k1 |= 1 << i; else if (st[ix] === 0) k0 |= 1 << i; });
+      let and = full, or = 0, any = false;
+      for (const p of getPats(n, c.cnt, c.kind)) { if ((p & k0) || (p & k1) !== k1) continue; any = true; and &= p; or |= p; }
+      if (!any) return false;
+      idx.forEach((ix, i) => { if (st[ix] < 0) { if ((and >> i) & 1) { st[ix] = 1; changed = true; } else if (!((or >> i) & 1)) { st[ix] = 0; changed = true; } } });
+    }
+  }
+  return st.every(v => v >= 0);
+}
+function makeShape(n) {
+  let last = null;
+  for (let t = 0; t < 1500; t++) {
+    const p = 0.5 + Math.random() * 0.14; let g = Array.from({ length: n * n * n }, () => Math.random() < p ? 1 : 0);
+    for (let it = 0; it < 2; it++) {
+      const h = g.slice();
+      for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) for (let z = 0; z < n; z++) {
+        let c = 0, tot = 0;
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) { const a = x + dx, b = y + dy, d = z + dz; if (a >= 0 && b >= 0 && d >= 0 && a < n && b < n && d < n) { tot++; c += g[(a * n + b) * n + d]; } }
+        h[(x * n + y) * n + z] = c * 2 > tot ? 1 : 0;
+      }
+      g = h;
+    }
+    const f = g.reduce((s, v) => s + v, 0) / g.length; last = g;
+    if (f < 0.3 || f > 0.72) continue;
+    if (solvable(g, n)) return g;
+  }
+  return last;
+}
+
+// ---------- 遊戲狀態 ----------
+let N = 4, sol, clues, removed, painted, cubes, tool = 'chisel', mistakes = 0, t0 = 0, over = true, totalFalse = 0, removedFalse = 0, timer = null, sndOn = true, won = false;
+const id3 = (x, y, z) => (x * N + y) * N + z;
+
+// ---------- three.js ----------
+const stage = $('stage'), renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x141a28);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(5, 9, 6); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0x99aaff, 0.3); dl2.position.set(-6, -3, -5); scene.add(dl2);
+const cubeGroup = new THREE.Group(), labelGroup = new THREE.Group(); scene.add(cubeGroup, labelGroup);
+const boxGeo = new THREE.BoxGeometry(0.94, 0.94, 0.94), planeGeo = new THREE.PlaneGeometry(0.78, 0.78);
+let theta = 0.75, phi = 1.0, radius = 9;
+function updCam() { camera.position.set(radius * Math.sin(phi) * Math.sin(theta), radius * Math.cos(phi), radius * Math.sin(phi) * Math.cos(theta)); camera.lookAt(0, 0, 0); }
+function resize() { const r = stage.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); }
+addEventListener('resize', resize);
+function resetView() { theta = 0.75; phi = 1.0; radius = N * 2.3 + 2; updCam(); }
+
+// 數字貼圖
+const texCache = new Map();
+function labelTex(cnt, kind, done) {
+  const key = cnt + '|' + kind + '|' + (done ? 1 : 0); let t = texCache.get(key); if (t) return t;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d');
+  const col = done ? '#9aa4b5' : kind === 0 ? '#c0392b' : kind === 1 ? '#1d2c52' : kind === 2 ? '#e8590c' : '#7b3fe4';
+  c.lineWidth = 7; c.strokeStyle = col; c.fillStyle = col;
+  if (kind === 2) { c.beginPath(); c.arc(48, 48, 38, 0, Math.PI * 2); c.stroke(); }
+  if (kind === 3) { c.strokeRect(10, 10, 76, 76); }
+  c.font = 'bold 54px -apple-system, "Noto Sans TC", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(cnt), 48, 51);
+  t = new THREE.CanvasTexture(cv); texCache.set(key, t); return t;
+}
+const matCache = new Map();
+function labelMat(cnt, kind, done) { const k = cnt + '|' + kind + '|' + (done ? 1 : 0); let m = matCache.get(k); if (!m) { m = new THREE.MeshBasicMaterial({ map: labelTex(cnt, kind, done), transparent: true, depthWrite: false }); matCache.set(k, m); } return m; }
+function rebuildLabels() {
+  labelGroup.clear(); const c0 = (N - 1) / 2;
+  for (let axis = 0; axis < 3; axis++) for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const idx = lineIdx(N, axis, a, b), clue = clues[axis][a][b], remain = idx.filter(ix => !removed[ix]).length;
+    if (remain === 0) continue;
+    const done = remain === clue.cnt;
+    for (const sgn of [-1, 1]) {
+      // 從該端往內找第一個還在的方塊
+      let j = sgn < 0 ? 0 : N - 1; while (removed[idx[j]]) j += sgn < 0 ? 1 : -1;
+      const ix = idx[j], x = Math.floor(ix / (N * N)), y = Math.floor(ix / N) % N, z = ix % N;
+      const dir = new THREE.Vector3(axis === 0 ? sgn : 0, axis === 1 ? sgn : 0, axis === 2 ? sgn : 0);
+      const m = new THREE.Mesh(planeGeo, labelMat(clue.cnt, clue.kind, done));
+      m.position.set(x - c0, y - c0, z - c0).addScaledVector(dir, 0.475);
+      if (Math.abs(dir.y) === 1) m.up.set(0, 0, 1);
+      m.lookAt(m.position.clone().add(dir)); labelGroup.add(m);
+    }
+  }
+}
+
+// ---------- 開始新遊戲 ----------
+function startGame(newShape) {
+  if (newShape || !sol) { sol = makeShape(N); }
+  clues = computeClues(sol, N); removed = new Array(N * N * N).fill(false); painted = new Array(N * N * N).fill(false);
+  totalFalse = sol.filter(v => !v).length; removedFalse = 0; mistakes = 0; over = false; won = false; t0 = Date.now();
+  cubeGroup.clear(); cubes = []; labelGroup.visible = true; const c0 = (N - 1) / 2;
+  for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) for (let z = 0; z < N; z++) {
+    const m = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({ color: 0xd8e0ee }));
+    m.position.set(x - c0, y - c0, z - c0); m.userData = { i: id3(x, y, z), x, y, z }; cubeGroup.add(m); cubes[m.userData.i] = m;
+  }
+  rebuildLabels(); resetView(); hud(); setMsg('點方塊開始雕刻!'); $('start').style.display = 'none'; $('win').style.display = 'none';
+  clearInterval(timer); timer = setInterval(hud, 250);
+}
+function elapsed() { return Math.floor((Date.now() - t0) / 1000) + mistakes * 30; }
+function hud() {
+  const s = over ? elapsedFinal : elapsed(); $('time').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  $('left').textContent = totalFalse - removedFalse; $('mis').textContent = mistakes;
+}
+let elapsedFinal = 0;
+function setMsg(t) { $('msg').textContent = t; }
+
+// ---------- 聲音 ----------
+let actx = null;
+function tone(f, d, type, v, when, slide) {
+  if (!sndOn) return; try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume();
+    const t = actx.currentTime + (when || 0), o = actx.createOscillator(), g = actx.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v || .12, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + d + .02);
+  } catch (e) {}
+}
+const sfx = { chisel: () => { tone(220, .09, 'square', .1, 0, 90); tone(900, .05, 'triangle', .06); }, paint: () => tone(660, .12, 'triangle', .12, 0, 880), bad: () => { tone(180, .13, 'square', .13, 0, 120); tone(180, .13, 'square', .13, .17, 120); },
+  win: () => [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, .22, 'triangle', .14, i * .12)) };
+
+// ---------- 操作 ----------
+function removeCube(i) {
+  removed[i] = true; const m = cubes[i]; m.userData.anim = 0; // 縮小後消失
+}
+function act(i, which) {
+  if (over || removed[i]) return;
+  const m = cubes[i], isSol = !!sol[i];
+  if (which === 'chisel') {
+    if (painted[i]) { setMsg('已塗色的方塊要先取消塗色才能敲'); return; }
+    if (isSol) { // 敲錯:該方塊其實要留下
+      mistakes++; painted[i] = true; m.material.color.setHex(0x4da3ff); m.userData.flash = Date.now(); sfx.bad(); setMsg('❌ 敲錯了!這塊要留下(失誤 +30 秒)');
+    } else { removeCube(i); removedFalse++; sfx.chisel(); setMsg(''); }
+  } else {
+    if (painted[i]) { painted[i] = false; m.material.color.setHex(0xd8e0ee); sfx.paint(); return; }
+    if (!isSol) { // 塗錯:該方塊其實要敲掉
+      mistakes++; m.userData.flash = Date.now(); removeCube(i); removedFalse++; sfx.bad(); setMsg('❌ 塗錯了!這塊其實要敲掉(失誤 +30 秒)');
+    } else { painted[i] = true; m.material.color.setHex(0x4da3ff); sfx.paint(); setMsg(''); }
+  }
+  rebuildLabels(); hud(); if (removedFalse === totalFalse) win();
+}
+function win() {
+  over = true; won = true; elapsedFinal = elapsed(); clearInterval(timer); hud(); sfx.win(); setMsg('🎉 作品完成!');
+  cubes.forEach((m, i) => { if (!removed[i]) m.material.color.setHSL((m.userData.y / N) * 0.75 + 0.02, 0.7, 0.6); });
+  labelGroup.visible = false;
+  setTimeout(() => { $('winp').innerHTML = `用時 <b>${$('time').textContent}</b>(含失誤加時),失誤 <b>${mistakes}</b> 次。<br>${N}×${N}×${N} 完成!`; $('win').style.display = 'flex'; }, 1100);
+}
+
+// ---------- 手勢:拖曳旋轉、縮放、點擊 ----------
+const ray = new THREE.Raycaster(), ptrs = new Map(); let pinch = 0, hover = -1;
+function pick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 }, camera);
+  const hits = ray.intersectObjects(cubeGroup.children.filter(m => !removed[m.userData.i])); return hits.length ? hits[0].object.userData.i : -1;
+}
+const cv = renderer.domElement;
+cv.addEventListener('pointerdown', e => { try { cv.setPointerCapture(e.pointerId); } catch (x) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: Date.now(), moved: false, btn: e.button }); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); } });
+cv.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId);
+  if (!p) { if (e.pointerType === 'mouse' && !over) { const i = pick(e); if (i !== hover) { if (hover >= 0 && cubes[hover]) cubes[hover].material.emissive.setHex(0); hover = i; if (i >= 0) cubes[i].material.emissive.setHex(0x333322); } } return; }
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 7) p.moved = true; p.x = e.clientX; p.y = e.clientY;
+  if (ptrs.size === 1) { theta -= dx * 0.01; phi = Math.min(Math.PI - 0.12, Math.max(0.12, phi - dy * 0.01)); updCam(); }
+  else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch) { radius = Math.min(N * 5, Math.max(N * 1.3, radius * pinch / d)); updCam(); } pinch = d; }
+});
+const endPtr = e => {
+  const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId); pinch = 0;
+  if (p && !p.moved && ptrs.size === 0 && Date.now() - p.t < 600 && e.type === 'pointerup') { const i = pick(e); if (i >= 0) act(i, (p.btn === 2) ? (tool === 'chisel' ? 'paint' : 'chisel') : tool); }
+};
+cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('wheel', e => { e.preventDefault(); radius = Math.min(N * 5, Math.max(N * 1.3, radius * (1 + e.deltaY * 0.001))); updCam(); }, { passive: false });
+
+// ---------- 畫面更新 ----------
+function loop() {
+  requestAnimationFrame(loop); const now = Date.now();
+  if (won) { theta += 0.008; updCam(); }
+  if (cubes) cubes.forEach((m, i) => {
+    if (!m) return; const u = m.userData;
+    if (u.anim !== undefined && u.anim >= 0) { u.anim += 0.12; const s = Math.max(0, 1 - u.anim); m.scale.setScalar(s); if (u.anim >= 1) { cubeGroup.remove(m); u.anim = -1; } }
+    if (u.flash) { const k = now - u.flash; if (k < 500) m.material.emissive.setHex((Math.floor(k / 80) % 2) ? 0xff2200 : 0x550000); else { m.material.emissive.setHex(0); u.flash = 0; } }
+  });
+  renderer.render(scene, camera);
+}
+
+// ---------- 按鈕 ----------
+function setTool(t) { tool = t; $('tChisel').classList.toggle('on', t === 'chisel'); $('tPaint').classList.toggle('on', t === 'paint'); }
+$('tChisel').onclick = () => setTool('chisel'); $('tPaint').onclick = () => setTool('paint');
+$('sizes').onclick = e => { const b = e.target.closest('button'); if (!b) return; N = +b.dataset.n; [...$('sizes').children].forEach(x => x.classList.toggle('on', x === b)); };
+$('go').onclick = () => { $('go').textContent = '產生題目中…'; setTimeout(() => { startGame(true); $('go').textContent = '開始遊戲'; }, 30); };
+$('bView').onclick = resetView; $('bAgain').onclick = () => startGame(false);
+$('bNew').onclick = () => { setMsg('產生新題目中…'); setTimeout(() => startGame(true), 30); };
+$('bHome').onclick = () => { $('start').style.display = 'flex'; };
+$('bSnd').onclick = () => { sndOn = !sndOn; $('bSnd').textContent = sndOn ? '🔊' : '🔇'; };
+$('w1').onclick = () => { $('win').style.display = 'none'; setMsg('產生新題目中…'); setTimeout(() => startGame(true), 30); };
+$('w2').onclick = () => { $('win').style.display = 'none'; };
+resize(); updCam(); loop(); startGame(true); $('start').style.display = 'flex';
+</script>
+</body>
+</html>
