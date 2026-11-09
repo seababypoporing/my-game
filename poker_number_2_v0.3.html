@@ -58,6 +58,8 @@ details{margin-top:16px}summary{cursor:pointer;font-size:14px;color:var(--sub)}
     <div class="seg" id="segP"><button data-v="2">2 份</button><button data-v="3">3 份</button><button data-v="4">4 份</button></div>
   </div>
   <p class="sub" id="dealNote" style="margin-top:12px"></p>
+  <h2>三條（三張同點數）</h2>
+  <div class="seg" id="segT"><button data-v="1">可以出</button><button data-v="0">不可以出</button></div>
   <h2>勝負方式</h2>
   <div class="seg" id="segM"><button data-v="wins">先贏幾局</button><button data-v="points">先得幾分</button></div>
   <p class="sub" style="margin-top:10px">目標：<input type="number" class="num" id="tgt" min="1" max="999" value="3" aria-label="目標數字"> <span id="unit">局</span></p>
@@ -65,9 +67,9 @@ details{margin-top:16px}summary{cursor:pointer;font-size:14px;color:var(--sub)}
   <p style="text-align:center;margin:18px 0 0"><button class="b p" id="start">開始遊戲</button></p>
   <details><summary>規則說明</summary>
     <p class="sub">大小：3 最小，2 最大；花色 ♣ ＜ ♦ ＜ ♥ ＜ ♠。<br>
-    牌型：單張、對子、三條，以及五張牌：順子、葫蘆、鐵支（四張加一張）、同花順。出牌必須和桌上的牌型相同且更大：單張對單張、對子對對子、順子對順子、葫蘆對葫蘆，不能用其他牌型對應。<br>
+    牌型：單張、對子、三條（開始前可設定能不能出），以及五張牌：順子、葫蘆、鐵支（四張加一張）、同花順。出牌必須和桌上的牌型相同且更大：單張對單張、對子對對子、順子對順子、葫蘆對葫蘆，不能用其他牌型對應。<br>
     特例：鐵支和同花順可以隨時壓過任何牌型；鐵支可被更大的鐵支或任何同花順壓過，同花順只能被更大的同花順壓過。<br>
-    順子只能以 6 到 K 結尾，從 2-3-4-5-6（最小）到 9-10-J-Q-K（最大）；10-J-Q-K-A、J-Q-K-A-2、A-2-3-4-5 都不能出。順子和同花順比結尾的那張牌（同點比花色），葫蘆比三張那組的點數，鐵支比四張的點數。<br>
+    順子從 2-3-4-5-6（最小）到 10-J-Q-K-A（最大），10-J-Q-K-A 比 9-10-J-Q-K 大；J-Q-K-A-2、A-2-3-4-5 這類環繞的不能出。順子和同花順比結尾的那張牌（同點比花色），葫蘆比三張那組的點數，鐵支比四張的點數。<br>
     手上最小的牌的人先出，第一手必須包含那張牌。其他人都過牌後，最後出牌的人重新出任意牌型。</p>
   </details>
 </div>
@@ -139,11 +141,12 @@ const snd = n => { try { sfx[n](); } catch (e) {} };
 // ---------- 牌型判斷 ----------
 function ev(cs) {
   const n = cs.length; if (!n || n == 4 || n > 5) return null;
+  if (n == 3 && !cfg.tr) return null;   // 設定為「不可以出三條」時，三張同點數不是合法牌型
   const a = [...cs].sort((x, y) => x - y), top = a[n - 1], r = a.map(rk);
   if (n < 5) return r.every(x => x == r[0]) ? {n, t: 0, k: top} : null;
   const fl = a.every(c => su(c) == su(a[0])), u = r.every((x, i) => !i || x != r[i - 1]);
   const sp = u && r[0] == 0 && r[3] == 3 && r[4] == 12;   // 2-3-4-5-6（2 當最小）
-  const st = u && ((r[4] - r[0] == 4 && r[4] <= 10) || sp), ek = sp ? a[3] : top;   // 順子只能以 6～K 結尾；ek = 結尾的那張牌
+  const st = u && ((r[4] - r[0] == 4 && r[4] <= 11) || sp), ek = sp ? a[3] : top;   // 順子可以 6～A 結尾（10-J-Q-K-A 最大）；ek = 結尾的那張牌
   if (st && fl) return {n, t: 4, k: ek};
   const q = r[0] == r[3] ? r[0] : r[1] == r[4] ? r[4] : -1;
   if (q >= 0) return {n, t: 3, k: q};
@@ -190,7 +193,7 @@ function aiPick(i, force) {
 }
 
 // ---------- 遊戲流程 ----------
-let cfg = {n: 2, p: 4, m: 'wins', t: 3}, G = null, M = null, sel = [];
+let cfg = {n: 2, p: 4, m: 'wins', t: 3, tr: true}, G = null, M = null, sel = [];
 // ---------- 比賽（多局累積勝場與分數） ----------
 function newMatch() { M = {mode: cfg.m, target: cfg.t, wins: Array(cfg.n).fill(0), pts: Array(cfg.n).fill(0), round: 1, done: false}; }
 const board = () => G.P.map((p, j) => `${p.name}：${M.wins[j]} 勝，${M.pts[j]} 分`).join('<br>');
@@ -301,11 +304,13 @@ function sync() {
   document.querySelectorAll('#segP button').forEach(b => b.classList.toggle('on', +b.dataset.v == cfg.p));
   $('portBox').classList.toggle('hide', cfg.n != 2);
   $('dealNote').textContent = cfg.n == 2 ? NOTE['2-' + cfg.p] : NOTE[cfg.n];
+  document.querySelectorAll('#segT button').forEach(b => b.classList.toggle('on', (b.dataset.v == '1') == cfg.tr));
   document.querySelectorAll('#segM button').forEach(b => b.classList.toggle('on', b.dataset.v == cfg.m));
   $('unit').textContent = cfg.m == 'wins' ? '局' : '分'; $('tgt').value = cfg.t;
 }
 document.querySelectorAll('#segN button').forEach(b => b.onclick = () => { cfg.n = +b.dataset.v; sync(); });
 document.querySelectorAll('#segP button').forEach(b => b.onclick = () => { cfg.p = +b.dataset.v; sync(); });
+document.querySelectorAll('#segT button').forEach(b => b.onclick = () => { cfg.tr = b.dataset.v == '1'; sync(); });
 document.querySelectorAll('#segM button').forEach(b => b.onclick = () => { cfg.m = b.dataset.v; cfg.t = cfg.m == 'wins' ? 3 : 50; sync(); });
 $('tgt').oninput = () => { cfg.t = Math.max(1, Math.min(999, Math.floor(+$('tgt').value) || 1)); };
 const menu = () => { G = null; $('game').classList.add('hide'); $('end').classList.add('hide'); $('setup').classList.remove('hide'); };
