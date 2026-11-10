@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>益智停車場 v1.3</title>
+<style>
+:root{--bg1:#fff6dc;--bg2:#ffe3b0;--ink:#3b2a16;--green:#7ccf4a;--green2:#5bb230;--orange:#ff8a1f;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--ink);
+  background:radial-gradient(circle at 30% 10%,#fffdf3,var(--bg1) 40%,var(--bg2));overflow:hidden;touch-action:none}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(8px,env(safe-area-inset-top)) 10px 10px}
+h1{margin:4px 0 2px;font-size:clamp(26px,7vw,40px);letter-spacing:2px;font-weight:900;
+  color:#2f8f1f;text-shadow:3px 3px 0 #fff,-2px -2px 0 #fff,2px -2px 0 #fff,-2px 2px 0 #fff,4px 5px 0 rgba(0,0,0,.15)}
+h1 span{color:var(--orange)}
+.sub{background:linear-gradient(#ffb43b,#ff8a1f);color:#fff;font-weight:800;padding:3px 14px;border-radius:999px;font-size:14px;
+  box-shadow:0 3px 0 #d96a00;margin-bottom:8px}
+.hud{display:flex;gap:8px;width:min(94vw,520px);justify-content:space-between;margin-bottom:8px}
+.pill{flex:1;background:#fff;border-radius:14px;padding:6px 4px;text-align:center;box-shadow:0 3px 0 rgba(0,0,0,.12);font-size:12px;color:#8a6d4b}
+.pill b{display:block;font-size:20px;color:var(--ink)}
+#boardWrap{position:relative;width:min(94vw,520px,calc(100vh - 260px));aspect-ratio:1}
+#frame{position:absolute;inset:0;border-radius:22px;background:var(--green);box-shadow:0 8px 0 var(--green2),0 14px 24px rgba(0,0,0,.2);overflow:hidden}
+#frame svg.deco{position:absolute;inset:0;width:100%;height:100%}
+#board{position:absolute;left:9%;top:9%;width:82%;height:82%;background:#d9dde2;border-radius:10px;
+  box-shadow:inset 0 0 0 4px #fff,inset 0 4px 10px rgba(0,0,0,.18)}
+#grid{position:absolute;inset:0}
+.cell{position:absolute;border-radius:6px;background:#eceff2;box-shadow:inset 0 -2px 0 #c9ced4}
+.car{position:absolute;touch-action:none;cursor:grab;transition:left .18s cubic-bezier(.3,1.4,.5,1),top .18s cubic-bezier(.3,1.4,.5,1);z-index:2}
+.car.drag{transition:none;cursor:grabbing;z-index:5;filter:drop-shadow(0 6px 6px rgba(0,0,0,.3))}
+.car svg{width:100%;height:100%;display:block;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.25))}
+.car svg .hl{fill:#f3eaa0;transition:fill .15s}
+.car svg .tl{fill:#d94a4a;transition:fill .15s}
+.car svg .glowH,.car svg .glowT,.car svg .beam{opacity:0;transition:opacity .2s}
+.car.lit svg .hl{fill:#fffef0}
+.car.lit svg .glowH{opacity:1}
+.car.lit svg .tl{fill:#ff5050}
+.car.lit svg .glowT{opacity:.55}
+.car.fwd svg .beam{opacity:.9}
+.car.back svg .tl{fill:#ff2a2a}
+.car.back svg .glowT{opacity:1}
+.car.lit{z-index:4}
+.car.hint{animation:hint .6s ease-in-out infinite alternate}
+@keyframes hint{to{filter:drop-shadow(0 0 10px #ffe600) drop-shadow(0 0 4px #ff9d00)}}
+.car.bump{animation:bump .18s}
+@keyframes bump{50%{transform:scale(.96)}}
+#exitTag{position:absolute;right:0;z-index:6;pointer-events:none;font-weight:900;color:#fff;font-size:clamp(10px,2.6vw,14px);display:flex;align-items:center;justify-content:center;flex-direction:column;
+  text-shadow:0 0 4px #e0560a,0 2px 0 #c44a00;color:#fff}
+.btns{display:flex;gap:8px;margin-top:14px;width:min(94vw,520px)}
+button{font-family:inherit;border:0;border-radius:14px;padding:10px 6px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;flex:1;
+  background:linear-gradient(#5ec6ff,#2a96e6);box-shadow:0 4px 0 #1a6fb0;transition:transform .08s}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #1a6fb0}
+button.o{background:linear-gradient(#ffb43b,#ff8a1f);box-shadow:0 4px 0 #d96a00}
+button.g{background:linear-gradient(#8fe060,#55b52b);box-shadow:0 4px 0 #3a8a17}
+button.p{background:linear-gradient(#ff8fb5,#ef5a8c);box-shadow:0 4px 0 #b8336a}
+button:disabled{opacity:.45}
+.overlay{position:fixed;inset:0;background:rgba(60,40,10,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.overlay.show{display:flex}
+.card{background:#fffaf0;border-radius:24px;padding:18px;width:min(92vw,460px);max-height:88vh;overflow:auto;text-align:center;box-shadow:0 8px 0 #e7c891,0 20px 40px rgba(0,0,0,.3);border:4px solid #fff}
+.card h2{margin:4px 0 10px;color:#2f8f1f}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{font-size:13px;padding:7px 2px}
+.tabs button.on{background:linear-gradient(#ffb43b,#ff8a1f);box-shadow:0 4px 0 #d96a00}
+.lv{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.lv button{padding:8px 0 6px;font-size:18px;background:#fff;color:var(--ink);box-shadow:0 3px 0 #d8c7a6;border:2px solid #f0e2c4}
+.lv button small{display:block;font-size:11px;color:#f5b400;letter-spacing:-1px;height:13px}
+.lv button.cur{border-color:var(--orange)}
+.stars{font-size:46px;letter-spacing:6px;color:#f5b400;text-shadow:0 3px 0 #c98a00;margin:4px 0}
+.stars .off{color:#e5dccb;text-shadow:0 3px 0 #cfc3ab}
+.card p{margin:6px 0;line-height:1.6}
+.card .btns{width:100%;margin-top:12px}
+.card .btns button{min-width:0;white-space:nowrap;font-size:clamp(14px,4vw,17px);padding:12px 6px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+.tip{font-size:12px;color:#9a7b55;margin-top:8px;text-align:center}
+#toast{position:fixed;left:50%;bottom:14%;transform:translateX(-50%);background:#3b2a16;color:#fff;padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;z-index:70;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>益智<span>停車場</span></h1>
+  <div class="sub">🅿️ 滑動移車・把紅車開出去！</div>
+  <div class="hud">
+    <div class="pill">關卡<b id="hLevel">1</b></div>
+    <div class="pill">步數<b id="hMoves">0</b></div>
+    <div class="pill">最少步數<b id="hBest">0</b></div>
+    <div class="pill">難度<b id="hDiff" style="font-size:16px;line-height:24px">簡單</b></div>
+  </div>
+  <div id="boardWrap">
+    <div id="frame"><svg class="deco" id="deco"></svg></div>
+    <div id="board"><div id="grid"></div></div>
+    <div id="exitTag">出口<span style="font-size:1.6em">➜</span></div>
+  </div>
+  <div class="btns">
+    <button class="o" id="bLevels">📋 選關</button>
+    <button id="bUndo">↶ 上一步</button>
+    <button class="g" id="bReset">⟳ 重來</button>
+    <button class="p" id="bHint">💡 提示</button>
+  </div>
+  <div class="tip">拖動車子沿著車身方向前後滑動，車子不能轉彎、不能穿過其他車 <span id="bSound" style="cursor:pointer">🔊</span></div>
+</div>
+
+<div class="overlay show" id="ovStart"><div class="card">
+  <div style="font-size:64px;line-height:1.1">🚗🅿️</div>
+  <h2 style="font-size:30px;margin:6px 0">益智<span style="color:#ff8a1f">停車場</span></h2>
+  <p>移開擋路的車子<br>讓<b style="color:#e33">紅色小車</b>從出口開出去！</p>
+  <div class="btns"><button class="o" id="bStart" style="font-size:20px;padding:14px">▶ 開始遊戲</button></div>
+</div></div>
+<div class="overlay" id="ovLevels"><div class="card">
+  <h2>選擇關卡</h2>
+  <div class="tabs" id="tabs"></div>
+  <div class="lv" id="lvGrid"></div>
+  <div style="margin-top:12px"><button class="g" id="bClose" style="width:60%">關閉</button></div>
+</div></div>
+
+<div class="overlay" id="ovWin"><div class="card">
+  <h2 id="winTitle">停車大闖關成功！</h2>
+  <div class="stars" id="winStars"></div>
+  <p id="winText"></p>
+  <div class="btns" style="margin-top:8px">
+    <button class="g" id="bRetry">⟳ 再玩一次</button>
+    <button class="o" id="bNext">下一關 ➜</button>
+  </div>
+</div></div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <radialGradient id="gHead"><stop offset="0" stop-color="#fffbd0" stop-opacity="1"/><stop offset=".35" stop-color="#fff27a" stop-opacity=".7"/><stop offset="1" stop-color="#fff27a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gTail"><stop offset="0" stop-color="#ff6a6a" stop-opacity="1"/><stop offset=".4" stop-color="#ff2a2a" stop-opacity=".6"/><stop offset="1" stop-color="#ff2a2a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="gBeam" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff6a8" stop-opacity=".85"/><stop offset="1" stop-color="#fff6a8" stop-opacity="0"/></linearGradient>
+  </defs>
+</svg>
+<canvas id="confetti"></canvas>
+<div id="toast"></div>
+
+<script>
+// ===== 關卡資料：每台車 [橫向1/直向0, 長度, 列, 欄]，第一台是紅車 =====
+const LEVELS = [{"m":3,"c":[[1,2,2,2],[1,2,5,4],[0,2,1,1],[0,2,4,0],[1,2,5,1],[1,2,4,1],[0,2,0,2],[0,2,1,4],[1,2,4,3],[1,2,3,3],[1,2,0,0],[0,2,1,5],[1,2,3,1],[0,3,1,0]]},{"m":3,"c":[[1,2,2,1],[0,2,2,3],[0,2,3,4],[0,2,4,1],[0,2,1,4],[0,2,0,0],[1,2,5,4],[1,2,3,1],[0,2,0,1]]},{"m":3,"c":[[1,2,2,2],[0,3,1,0],[1,3,0,2],[0,2,4,1],[0,2,1,1],[0,2,2,5],[1,3,5,2],[0,2,1,4]]},{"m":4,"c":[[1,2,2,1],[1,2,3,4],[1,2,4,4],[1,2,5,1],[1,2,0,4],[0,2,1,5],[1,2,0,2],[1,2,1,2],[1,2,3,1],[0,3,3,0],[1,2,1,0]]},{"m":4,"c":[[1,2,2,1],[1,2,1,1],[0,2,1,5],[1,2,5,1],[0,2,0,0],[1,2,4,1],[1,2,0,2],[0,3,3,5],[1,2,0,4]]},{"m":4,"c":[[1,2,2,0],[0,2,1,5],[1,2,4,0],[0,2,1,3],[1,3,4,3],[1,2,5,1],[1,2,3,1],[0,2,2,4]]},{"m":5,"c":[[1,2,2,0],[0,3,3,0],[0,2,3,1],[1,2,3,4],[1,2,0,2],[1,3,5,1],[0,2,2,2],[1,2,4,4],[1,2,0,4],[1,3,1,2],[0,2,0,1],[0,2,1,5],[1,2,5,4]]},{"m":5,"c":[[1,2,2,0],[1,2,3,3],[0,2,1,5],[1,3,0,1],[1,2,1,0],[1,2,3,1],[0,2,4,4],[0,2,1,4],[0,2,1,3],[1,2,5,1]]},{"m":5,"c":[[1,2,2,0],[1,2,0,1],[1,2,5,0],[1,3,1,0],[0,2,2,2],[0,2,3,0],[0,2,3,1],[0,2,1,3],[0,2,4,2]]},{"m":5,"c":[[1,2,2,2],[1,3,3,3],[1,3,0,2],[0,3,0,5],[0,2,4,1],[1,3,4,3],[1,2,1,3],[1,2,5,4]]},{"m":6,"c":[[1,2,2,0],[0,3,3,1],[1,2,0,4],[1,2,1,1],[0,3,3,5],[0,2,2,2],[0,2,1,5],[0,2,2,4],[1,2,5,2],[0,2,4,0],[1,2,4,2]]},{"m":6,"c":[[1,2,2,0],[1,2,1,4],[1,3,3,0],[1,2,4,2],[0,2,2,4],[0,2,2,3],[1,2,5,3],[1,2,1,2],[1,2,4,4]]},{"m":7,"c":[[1,2,2,0],[0,2,1,5],[1,2,1,0],[0,2,4,2],[1,3,1,2],[1,3,5,3],[1,2,5,0],[1,2,4,4],[0,2,3,0],[1,2,3,4],[0,2,2,2],[1,2,0,2]]},{"m":7,"c":[[1,2,2,2],[1,3,0,3],[1,2,5,3],[0,3,1,1],[0,2,2,5],[1,2,1,4],[0,2,3,0],[0,2,4,5],[0,2,0,2],[0,2,2,4]]},{"m":7,"c":[[1,2,2,0],[1,2,3,4],[0,3,0,5],[0,2,4,0],[0,2,3,1],[0,2,1,4],[1,2,4,4],[1,2,3,2]]},{"m":8,"c":[[1,2,2,0],[0,3,3,0],[1,2,1,3],[1,2,3,1],[0,2,1,5],[0,2,2,3],[0,2,1,2],[0,3,2,4],[1,2,4,2],[1,2,5,3],[0,2,0,0],[1,2,0,4],[0,3,3,5],[0,2,0,1]]},{"m":8,"c":[[1,2,2,0],[1,2,4,3],[0,2,1,3],[0,2,2,5],[1,2,5,3],[0,2,2,4],[0,2,2,2],[0,2,4,0],[1,2,1,4],[1,2,5,1],[1,2,0,4],[0,2,4,5]]},{"m":8,"c":[[1,2,2,1],[1,2,0,2],[0,3,0,4],[0,2,4,2],[1,2,1,2],[1,2,1,0],[1,2,5,4],[1,2,0,0],[1,2,3,4],[0,2,1,5],[0,2,2,3]]},{"m":8,"c":[[1,2,2,0],[0,3,0,5],[1,2,4,1],[1,3,3,3],[1,3,4,3],[0,3,3,0],[1,3,0,2],[1,2,5,4],[0,2,0,1]]},{"m":8,"c":[[1,2,2,2],[0,2,1,1],[1,2,1,2],[0,2,4,3],[1,2,3,4],[0,3,0,4],[1,2,4,4],[1,2,0,0]]},{"m":9,"c":[[1,2,2,1],[0,2,2,4],[1,2,1,3],[0,2,0,2],[0,2,0,1],[0,2,2,0],[0,2,1,5],[0,3,3,5],[1,2,0,4],[0,2,4,4],[0,2,0,0],[0,2,2,3]]},{"m":9,"c":[[1,2,2,2],[1,2,4,2],[0,2,4,5],[1,2,5,1],[0,2,2,4],[1,2,0,4],[1,2,1,0],[1,2,1,4],[0,2,0,3],[0,2,2,5],[1,3,3,1]]},{"m":9,"c":[[1,2,2,1],[1,3,0,3],[0,2,1,4],[0,2,2,3],[0,2,0,1],[0,2,1,5],[1,2,5,2],[0,2,4,4],[0,2,0,2]]},{"m":10,"c":[[1,2,2,0],[0,2,2,4],[0,2,0,0],[0,2,1,2],[1,2,0,4],[0,2,3,5],[1,2,4,1],[1,2,5,2],[0,2,4,4],[1,2,5,0],[0,2,1,5],[1,2,0,1],[1,2,1,3]]},{"m":10,"c":[[1,2,2,0],[1,2,5,0],[0,2,0,0],[0,2,2,4],[0,2,2,2],[0,2,4,4],[1,3,0,3],[1,2,1,3],[1,2,1,1],[0,2,2,3],[0,2,1,5]]},{"m":10,"c":[[1,2,2,2],[1,2,0,1],[0,2,2,0],[0,2,4,3],[1,3,3,1],[0,3,1,4],[0,2,1,1],[1,2,4,4],[1,2,1,2]]},{"m":11,"c":[[1,2,2,0],[0,2,2,5],[0,3,0,2],[0,2,1,3],[1,2,0,4],[0,2,4,4],[1,2,1,0],[1,2,5,2],[0,2,2,4],[1,2,5,0],[1,2,3,1],[1,2,1,4]]},{"m":11,"c":[[1,2,2,0],[1,2,0,2],[0,3,1,2],[0,2,4,4],[1,2,3,4],[0,2,1,5],[0,3,3,0],[0,2,0,1],[1,2,5,2]]},{"m":12,"c":[[1,2,2,0],[1,2,0,4],[1,2,3,2],[1,2,5,0],[0,2,2,4],[1,2,1,3],[0,2,3,1],[0,3,0,2],[0,2,1,5],[0,2,4,4]]},{"m":13,"c":[[1,2,2,1],[0,3,1,4],[1,2,5,3],[1,2,1,0],[1,2,4,2],[1,2,4,4],[1,2,3,2],[1,2,3,0],[0,2,4,1]]},{"m":14,"c":[[1,2,2,1],[1,2,5,2],[0,2,2,5],[0,2,0,1],[1,2,0,2],[1,2,1,4],[0,2,3,2],[1,2,1,2],[1,2,0,4],[0,2,4,4],[0,2,2,4],[1,2,3,0],[0,3,0,0],[0,2,3,3]]},{"m":14,"c":[[1,2,2,1],[0,2,1,0],[1,2,3,0],[1,2,5,0],[0,2,4,5],[0,2,0,2],[0,2,0,3],[0,2,2,4],[1,2,4,1],[0,2,4,4],[1,2,0,4],[0,3,2,3],[1,2,5,2]]},{"m":14,"c":[[1,2,2,2],[0,2,0,3],[1,2,0,4],[1,2,5,1],[0,2,3,2],[1,2,1,4],[0,2,4,5],[0,3,0,0],[1,2,3,0],[1,2,4,3],[1,2,0,1],[0,2,2,4]]},{"m":14,"c":[[1,2,2,2],[0,2,2,4],[1,2,4,4],[1,3,0,2],[0,3,1,5],[0,2,0,0],[1,2,3,0],[0,2,4,2],[1,3,1,2],[0,2,4,3],[1,2,3,2]]},{"m":15,"c":[[1,2,2,2],[1,2,1,3],[0,2,4,1],[0,2,3,3],[0,2,3,2],[1,2,1,1],[0,2,4,0],[0,3,0,5],[1,2,5,2],[1,2,3,0],[0,2,2,4],[1,2,5,4],[1,2,0,3],[1,2,0,1]]},{"m":15,"c":[[1,2,2,1],[1,2,5,2],[0,2,0,1],[1,3,0,3],[0,2,0,2],[0,2,1,0],[0,2,4,5],[0,3,3,1],[0,2,2,5],[0,3,2,3],[0,2,2,4],[0,2,4,4]]},{"m":15,"c":[[1,2,2,1],[0,2,0,5],[0,3,1,3],[0,3,3,2],[1,2,0,2],[0,2,0,1],[0,2,0,4],[1,2,5,0],[1,2,3,4],[0,2,4,5],[1,2,5,3]]},{"m":16,"c":[[1,2,2,0],[1,2,3,2],[1,2,5,1],[1,2,0,3],[1,3,0,0],[1,2,1,3],[1,2,4,4],[1,2,4,1],[0,2,4,0],[0,2,2,4],[1,2,3,0],[0,2,4,3],[0,2,0,5]]},{"m":16,"c":[[1,2,2,0],[0,2,3,0],[0,3,0,5],[1,2,4,4],[0,2,0,1],[1,2,0,2],[0,2,2,4],[0,2,3,3],[0,2,1,2],[1,2,3,1],[0,2,0,4]]},{"m":17,"c":[[1,2,2,2],[1,2,3,0],[0,3,0,5],[1,2,0,0],[1,2,4,1],[1,2,5,1],[0,2,3,3],[0,2,4,0],[1,3,5,3],[0,2,1,1],[1,2,1,3],[0,2,0,2],[1,2,4,4]]},{"m":17,"c":[[1,2,2,0],[0,2,2,3],[1,2,4,2],[1,2,3,4],[1,2,3,0],[0,2,0,3],[1,3,0,0],[1,3,5,3],[0,2,2,2],[1,2,4,4],[0,2,4,0]]},{"m":18,"c":[[1,2,2,0],[0,2,0,4],[0,2,4,3],[1,2,0,2],[0,2,2,3],[0,2,0,1],[0,2,2,4],[0,2,4,0],[0,3,2,2],[1,2,5,1],[0,2,0,5],[0,2,0,0],[0,2,2,5]]},{"m":19,"c":[[1,2,2,1],[0,2,2,4],[1,2,5,2],[0,2,4,4],[1,2,5,0],[1,2,4,0],[1,2,1,3],[1,2,3,0],[1,2,0,0],[0,2,0,2],[0,3,2,5],[0,2,0,5],[0,2,2,3],[0,2,1,0]]},{"m":19,"c":[[1,2,2,0],[0,2,1,3],[0,3,3,0],[1,3,4,1],[1,3,3,3],[0,2,0,1],[0,3,1,2],[1,2,0,3],[0,2,4,4],[1,2,5,2],[0,2,4,5]]},{"m":20,"c":[[1,2,2,2],[0,2,4,2],[0,2,1,1],[0,2,2,5],[1,3,3,0],[0,2,0,3],[0,3,1,4],[1,2,5,3],[1,2,0,4],[0,2,3,3],[0,2,1,0]]},{"m":21,"c":[[1,2,2,0],[1,3,4,2],[1,3,5,0],[0,2,0,5],[0,3,1,3],[0,2,1,4],[1,2,3,1],[0,2,3,0],[1,2,0,3],[0,2,4,5],[0,2,1,2],[1,2,0,1],[1,2,3,4],[1,2,1,0]]},{"m":21,"c":[[1,2,2,2],[0,2,1,1],[1,2,4,4],[0,3,3,3],[0,3,2,0],[0,2,2,5],[1,2,3,1],[0,2,4,2],[1,2,5,0],[1,2,0,1],[0,2,0,5],[0,2,0,0],[1,2,5,4]]},{"m":21,"c":[[1,2,2,1],[0,2,0,4],[0,3,2,3],[0,2,3,0],[0,2,3,5],[0,2,0,1],[1,2,0,2],[1,3,5,3],[0,2,4,2],[0,2,1,0],[0,2,3,4],[0,2,0,5],[1,2,3,1]]},{"m":21,"c":[[1,2,2,3],[1,2,0,4],[1,3,4,0],[0,3,0,0],[0,2,2,1],[0,2,1,5],[1,3,5,0],[1,2,1,1],[0,2,2,2],[0,3,3,4],[0,3,3,5],[0,2,0,3]]},{"m":21,"c":[[1,2,2,0],[1,2,4,1],[1,2,0,3],[0,3,0,2],[0,2,1,3],[0,2,0,5],[1,2,0,0],[0,2,3,0],[0,2,2,5],[1,2,3,3],[1,2,3,1]]},{"m":22,"c":[[1,2,2,2],[1,3,0,2],[1,2,4,4],[1,2,5,0],[0,3,1,0],[0,2,4,2],[0,2,2,4],[1,2,3,1],[1,2,0,0],[1,2,1,3],[0,2,2,5],[0,2,1,1],[0,2,0,5]]},{"m":22,"c":[[1,2,2,0],[1,3,4,3],[1,2,0,1],[1,2,5,0],[1,2,1,4],[0,2,1,3],[0,2,2,4],[0,2,3,0],[0,2,3,1],[0,2,4,2],[1,2,3,2],[1,2,0,3]]},{"m":24,"c":[[1,2,2,1],[0,2,0,5],[1,3,3,1],[0,2,2,0],[0,2,3,4],[0,2,1,3],[1,2,5,4],[0,2,4,2],[0,2,0,0],[1,2,0,2],[1,2,4,0],[0,2,3,5],[0,2,0,1]]},{"m":24,"c":[[1,2,2,1],[0,2,4,3],[0,2,4,2],[0,2,0,5],[1,2,1,2],[1,2,3,1],[1,2,4,4],[1,2,0,2],[0,2,2,3],[0,3,2,0],[0,2,0,4],[1,2,5,0],[0,2,0,1]]},{"m":25,"c":[[1,2,2,0],[1,2,4,4],[1,2,5,2],[0,2,3,0],[1,2,1,3],[0,2,2,4],[0,2,1,2],[1,2,5,0],[1,2,0,3],[0,2,0,5],[1,2,3,2],[1,3,0,0]]},{"m":26,"c":[[1,2,2,0],[1,3,1,1],[0,2,2,2],[1,2,0,0],[0,2,4,3],[1,2,0,2],[0,2,2,5],[1,2,4,1],[1,3,5,0],[0,2,3,0],[0,3,0,4],[0,2,0,5],[1,2,3,3]]},{"m":27,"c":[[1,2,2,3],[1,2,1,4],[1,3,4,0],[1,2,5,3],[0,2,0,0],[0,2,3,4],[0,2,1,1],[1,3,5,0],[0,2,4,5],[0,2,0,3],[1,2,3,1],[0,2,1,2],[1,2,0,1],[0,2,2,5]]},{"m":29,"c":[[1,2,2,1],[0,2,2,3],[0,2,3,1],[0,2,0,0],[0,2,3,4],[0,2,0,2],[1,3,5,0],[1,2,0,4],[1,2,5,3],[0,3,3,5],[1,3,1,3],[1,2,4,2],[0,3,2,0]]},{"m":29,"c":[[1,2,2,0],[1,2,3,3],[1,3,4,0],[1,2,1,1],[1,2,0,4],[0,3,2,5],[1,2,5,0],[0,2,2,2],[1,2,5,2],[0,2,0,3],[0,2,0,0],[1,2,4,3],[1,2,3,0]]},{"m":32,"c":[[1,2,2,0],[0,2,3,0],[0,2,2,4],[1,3,3,1],[1,2,4,4],[1,2,5,4],[1,3,0,0],[1,2,1,3],[0,2,4,3],[0,2,0,5],[0,2,1,2],[1,2,0,3]]}];
+const DIFFS=[{name:'簡單',from:0},{name:'普通',from:15},{name:'困難',from:30},{name:'專家',from:45}];
+const N=6, EXITR=2;
+function diffOf(i){let d=DIFFS[0];for(const x of DIFFS)if(i>=x.from)d=x;return d}
+
+// ===== 車款 =====
+const CAR2=[ // 小車
+  {body:'#3aa0ff',dark:'#1f6fc0',type:'car'},
+  {body:'#ffd21f',dark:'#d9a400',type:'taxi'},
+  {body:'#ffffff',dark:'#222',type:'police'},
+  {body:'#ffffff',dark:'#e33',type:'ambulance'},
+  {body:'#ff9a2e',dark:'#d06a00',type:'car'},
+  {body:'#56c94a',dark:'#2f8f25',type:'car'},
+  {body:'#9a6bff',dark:'#6a3fd0',type:'car'},
+  {body:'#8b5a3c',dark:'#5e3a24',type:'car'},
+  {body:'#2fd0c4',dark:'#159a90',type:'car'},
+  {body:'#ff7ac0',dark:'#d0458f',type:'car'},
+];
+const CAR3=[ // 大車
+  {body:'#ffffff',dark:'#3a8fe0',type:'bus'},
+  {body:'#c9ced6',dark:'#7d8691',type:'truck'},
+  {body:'#ffcc33',dark:'#e08a00',type:'school'},
+  {body:'#5fbf3a',dark:'#2f7d1a',type:'truck'},
+];
+// 車燈：hl=頭燈 tl=尾燈，含發光暈
+function lights(W,y1,y2,hx,hw,hh,tx,tw,th){
+  let o='';
+  for(const y of[y1,y2]){
+    o+=`<circle class="glowH" cx="${hx+hw/2}" cy="${y}" r="32" fill="url(#gHead)"/>`;
+    o+=`<rect class="hl" x="${hx}" y="${y-hh/2}" width="${hw}" height="${hh}" rx="3"/>`;
+    o+=`<circle class="glowT" cx="${tx+tw/2}" cy="${y}" r="30" fill="url(#gTail)"/>`;
+    o+=`<rect class="tl" x="${tx}" y="${y-th/2}" width="${tw}" height="${th}" rx="3"/>`;
+  }
+  return o}
+function beams(W){
+  return `<g class="beam"><polygon points="${W-14},22 ${W+150},-10 ${W+150},50 ${W-14},34" fill="url(#gBeam)"/>`+
+         `<polygon points="${W-14},66 ${W+150},50 ${W+150},110 ${W-14},78" fill="url(#gBeam)"/></g>`}
+function carSVG(len,st,horiz){
+  const W=len*100,H=100;let s='';
+  const b=st.body,d=st.dark;
+  if(st.type==='player'||st.type==='car'||st.type==='taxi'||st.type==='police'||st.type==='ambulance'){
+    s+=`<rect x="6" y="12" width="${W-12}" height="76" rx="30" fill="${b}" stroke="${d}" stroke-width="5"/>`;
+    s+=`<rect x="${W*0.18}" y="20" width="${W*0.12}" height="60" rx="8" fill="#9fdcff" stroke="${d}" stroke-width="3" opacity=".95"/>`;
+    s+=`<rect x="${W*0.62}" y="22" width="${W*0.16}" height="56" rx="10" fill="#9fdcff" stroke="${d}" stroke-width="3" opacity=".95"/>`;
+    s+=`<rect x="${W*0.32}" y="24" width="${W*0.28}" height="52" rx="10" fill="${b}" stroke="${d}" stroke-width="2" opacity=".8"/>`;
+    s+=lights(W,28,72,W-20,9,16,11,7,14);
+    if(st.type==='taxi')s+=`<rect x="${W*0.36}" y="40" width="${W*0.22}" height="20" rx="4" fill="#222"/><text x="${W*0.47}" y="55" font-size="13" text-anchor="middle" fill="#ffd21f" font-weight="900">TAXI</text>`;
+    if(st.type==='police'){s+=`<rect x="${W*0.33}" y="13" width="${W*0.27}" height="74" fill="#222" opacity=".85"/><rect x="${W*0.43}" y="36" width="10" height="13" rx="3" fill="#ff3030"/><rect x="${W*0.43}" y="51" width="10" height="13" rx="3" fill="#2f7dff"/>`}
+    if(st.type==='ambulance'){s+=`<rect x="${W*0.40}" y="44" width="${W*0.14}" height="12" fill="#e33"/><rect x="${W*0.47-6}" y="32" width="12" height="36" fill="#e33"/>`}
+    if(st.type==='player'){s+=`<path d="M${W*0.56} 50 l-16 -14 v9 h-16 v10 h16 v9z" fill="#fff" opacity=".9"/>`}
+  } else { // 大車
+    const bus=st.type==='bus'||st.type==='school';
+    s+=`<rect x="6" y="10" width="${W-12}" height="80" rx="16" fill="${b}" stroke="${d}" stroke-width="5"/>`;
+    if(bus){
+      s+=`<rect x="${W-34}" y="18" width="16" height="64" rx="6" fill="#9fdcff" stroke="${d}" stroke-width="3"/>`;
+      for(let i=0;i<5;i++)s+=`<rect x="${26+i*46}" y="14" width="30" height="9" rx="3" fill="#9fdcff"/><rect x="${26+i*46}" y="77" width="30" height="9" rx="3" fill="#9fdcff"/>`;
+      s+=`<rect x="24" y="42" width="${W-80}" height="16" rx="6" fill="${d}" opacity=".85"/>`;
+      s+=`<text x="${(W-56)/2+24}" y="55" font-size="13" font-weight="900" text-anchor="middle" fill="#fff">${st.type==='bus'?'BUS':'SCHOOL'}</text>`;
+    } else {
+      s+=`<rect x="${W-80}" y="14" width="64" height="72" rx="12" fill="${d}"/><rect x="${W-36}" y="22" width="14" height="56" rx="5" fill="#9fdcff"/>`;
+      s+=`<rect x="16" y="18" width="${W-104}" height="64" rx="6" fill="#fff" opacity=".35"/>`;
+      for(let x=30;x<W-100;x+=22)s+=`<line x1="${x}" y1="22" x2="${x}" y2="78" stroke="${d}" stroke-width="3" opacity=".5"/>`;
+      s+=`<text x="${(W-104)/2+16}" y="56" font-size="15" font-weight="900" text-anchor="middle" fill="${d}">TRUCK</text>`;
+    }
+    s+=lights(W,25,75,W-14,6,14,9,6,14);
+  }
+  s=beams(W)+s;
+  const g=horiz?s:`<g transform="translate(100 0) rotate(90)">${s}</g>`;
+  const vb=horiz?`0 0 ${W} ${H}`:`0 0 ${H} ${W}`;
+  return `<svg viewBox="${vb}" preserveAspectRatio="none" style="overflow:visible">${g}</svg>`;
+}
+
+// ===== 音效 =====
+let AC=null, soundOn=true;
+try{soundOn=localStorage.getItem('park_sound')!=='0'}catch(e){}
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+function tone(f,dur,type='sine',vol=.15,delay=0,slide=0){if(!soundOn)return;const a=ac();if(!a)return;const t=a.currentTime+delay;
+  const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur)}
+// ===== 小型音序器 =====
+const NOTE={C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2};
+function nf(n){const m=n.match(/^([A-G])([#b]?)(\d)$/);let k=NOTE[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0)+(+m[3]-4)*12;return 440*Math.pow(2,k/12)}
+function note(f,t,dur,type,vol){const a=ac();if(!a||!soundOn)return;const o=a.createOscillator(),g=a.createGain(),st=a.currentTime+t;
+  o.type=type;o.frequency.setValueAtTime(f,st);g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(vol,st+.015);
+  g.gain.setValueAtTime(vol,st+dur*.6);g.gain.exponentialRampToValueAtTime(.001,st+dur);o.connect(g).connect(a.destination);o.start(st);o.stop(st+dur+.02)}
+// seq: "音名:長度" 以空白分隔，R=休止；beat=每拍秒數
+function seq(str,beat,type,vol,t0=0){let t=t0;for(const tok of str.trim().split(/\s+/)){const [n,l]=tok.split(':');const d=(+l||1)*beat;
+  if(n!=='R')n.split('+').forEach(x=>note(nf(x),t,d*.95,type,vol));t+=d}return t}
+function vroom(t0,f1,f2,dur){const a=ac();if(!a||!soundOn)return;const st=a.currentTime+t0;
+  const o=a.createOscillator(),lp=a.createBiquadFilter(),g=a.createGain();o.type='sawtooth';lp.type='lowpass';lp.frequency.value=900;
+  o.frequency.setValueAtTime(f1,st);o.frequency.exponentialRampToValueAtTime(f2,st+dur*.7);o.frequency.exponentialRampToValueAtTime(f2*.8,st+dur);
+  g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.12,st+.05);g.gain.exponentialRampToValueAtTime(.001,st+dur);
+  o.connect(lp).connect(g).connect(a.destination);o.start(st);o.stop(st+dur+.02)}
+function horn(t0){seq('G4+B4:1 R:.4 G4+B4:1.6',.12,'square',.05,t0)}
+// 開頭配樂：引擎發動 → 輕快小調 → 叭叭
+function playIntro(){
+  vroom(0,60,190,.45);
+  const b=.12,t=.4;
+  seq('D5:1 F#5:1 A5:1 D6:2',b,'square',.045,t);
+  seq('D3:2 A2:1 D3:2',b,'triangle',.16,t);
+  horn(t+5*b);
+}
+// 過關音效：放煙火（咻——碰！劈哩啪啦）
+let NOISE=null;
+function noiseBuf(a){if(!NOISE){NOISE=a.createBuffer(1,a.sampleRate*1.5,a.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}return NOISE}
+// 咻~~蹦：長哨音（帶顫音）往上飛，接一聲蹦
+function firework(t0){
+  const a=ac();if(!a||!soundOn)return;const st=a.currentTime+t0,up=.85;
+  const o=a.createOscillator(),g=a.createGain();o.type='sine';
+  o.frequency.setValueAtTime(450,st);o.frequency.exponentialRampToValueAtTime(1900,st+up);
+  const vib=a.createOscillator(),vg=a.createGain();vib.frequency.value=14;vg.gain.value=35;vib.connect(vg).connect(o.frequency);
+  g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.07,st+.08);g.gain.setValueAtTime(.07,st+up-.15);g.gain.linearRampToValueAtTime(.0001,st+up);
+  o.connect(g).connect(a.destination);o.start(st);o.stop(st+up+.02);vib.start(st);vib.stop(st+up+.02);
+  const bt=st+up;
+  const n=a.createBufferSource(),lp=a.createBiquadFilter(),ng=a.createGain();
+  n.buffer=noiseBuf(a);lp.type='lowpass';lp.frequency.setValueAtTime(1600,bt);lp.frequency.exponentialRampToValueAtTime(120,bt+.5);
+  ng.gain.setValueAtTime(.6,bt);ng.gain.exponentialRampToValueAtTime(.001,bt+.55);
+  n.connect(lp).connect(ng).connect(a.destination);n.start(bt);n.stop(bt+.57);
+  const th=a.createOscillator(),tg=a.createGain();th.type='sine';th.frequency.setValueAtTime(130,bt);th.frequency.exponentialRampToValueAtTime(38,bt+.3);
+  tg.gain.setValueAtTime(.5,bt);tg.gain.exponentialRampToValueAtTime(.001,bt+.35);th.connect(tg).connect(a.destination);th.start(bt);th.stop(bt+.37);
+}
+function playWin(){firework(0)}
+// ===== 引擎聲：拖車時「噗噗噗」 =====
+let ENG=null;
+function engineStart(big){
+  const a=ac();if(!a||!soundOn||ENG)return;const t=a.currentTime;
+  const o=a.createOscillator();o.type='sawtooth';o.frequency.value=big?38:48;
+  const o2=a.createOscillator();o2.type='square';o2.frequency.value=big?19:24;
+  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=big?320:420;lp.Q.value=4;
+  const am=a.createGain();am.gain.value=.5;
+  const lfo=a.createOscillator();lfo.type='square';lfo.frequency.value=big?6:8;
+  const lfoG=a.createGain();lfoG.gain.value=.5;lfo.connect(lfoG).connect(am.gain);
+  const m=a.createGain();m.gain.setValueAtTime(0,t);m.gain.linearRampToValueAtTime(.09,t+.06);
+  const o2g=a.createGain();o2g.gain.value=.35;
+  o.connect(lp);o2.connect(o2g).connect(lp);lp.connect(am).connect(m).connect(a.destination);
+  [o,o2,lfo].forEach(x=>x.start(t));
+  ENG={o,o2,lfo,lp,m,big,base:big?38:48,lb:big?6:8};
+}
+function engineSpeed(v){ // v: 每秒移動的格數
+  if(!ENG)return;const a=ac(),t=a.currentTime,k=Math.min(1,v/8);
+  ENG.o.frequency.setTargetAtTime(ENG.base*(1+k*.9),t,.06);
+  ENG.o2.frequency.setTargetAtTime(ENG.base/2*(1+k*.9),t,.06);
+  ENG.lfo.frequency.setTargetAtTime(ENG.lb*(1+k*1.6),t,.06);
+  ENG.lp.frequency.setTargetAtTime((ENG.big?320:420)*(1+k*1.5),t,.06);
+  ENG.m.gain.setTargetAtTime(.07+k*.09,t,.05);
+}
+function engineStop(){
+  if(!ENG)return;const a=ac(),t=a.currentTime,e=ENG;ENG=null;
+  e.m.gain.cancelScheduledValues(t);e.m.gain.setTargetAtTime(0,t,.06);
+  [e.o,e.o2,e.lfo].forEach(x=>x.stop(t+.4));
+}
+// 叮冬叮冬（門鈴般的鐘聲）
+function bell(f,t,dur,vol){const a=ac();if(!a||!soundOn)return;const st=a.currentTime+t;
+  [[1,1],[2,.35],[3.01,.12]].forEach(([m,v])=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f*m;
+    g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(vol*v,st+.008);g.gain.exponentialRampToValueAtTime(.001,st+dur*(m===1?1:.5));
+    o.connect(g).connect(a.destination);o.start(st);o.stop(st+dur+.05)})}
+function dingDong(){bell(nf('E6'),0,.22,.2);bell(nf('C6'),.13,.22,.2);bell(nf('E6'),.26,.22,.2);bell(nf('C6'),.39,.35,.2)}
+const SFX={
+  pick:()=>tone(520,.07,'triangle',.12),
+  drop:()=>{tone(300,.08,'square',.06);tone(180,.1,'triangle',.12,.02)},
+  bump:()=>tone(110,.1,'sawtooth',.08),
+  honk:()=>{tone(440,.15,'square',.07);tone(554,.15,'square',.07,.17)},
+  win:playWin,
+  hint:()=>tone(880,.15,'sine',.1,0,1.5)
+};
+
+// ===== 狀態 =====
+let L=0, cars=[], pos=[], moves=0, hist=[], won=false, optimal=0;
+let save={stars:{},cur:0};
+try{const s=JSON.parse(localStorage.getItem('park_save')||'null');if(s)save=s}catch(e){}
+function persist(){try{localStorage.setItem('park_save',JSON.stringify(save))}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const boardEl=$('board'), gridEl=$('grid');
+
+function cellSize(){return gridEl.clientWidth/N}
+function occ(p,skip){const g=new Int8Array(36).fill(-1);cars.forEach((c,i)=>{if(i===skip)return;for(let k=0;k<c.len;k++){const r=c.h?c.r:p[i]+k,cc=c.h?p[i]+k:c.c;g[r*6+cc]=i}});return g}
+function range(i){const c=cars[i],g=occ(pos,i);let lo=pos[i],hi=pos[i];
+  while(lo-1>=0){const r=c.h?c.r:lo-1,cc=c.h?lo-1:c.c;if(g[r*6+cc]>=0)break;lo--}
+  while(hi+c.len<N){const r=c.h?c.r:hi+c.len,cc=c.h?hi+c.len:c.c;if(g[r*6+cc]>=0)break;hi++}
+  return [lo,hi]}
+
+// ===== 求解（提示用，BFS） =====
+function solve(start){
+  const key=p=>p.join(','); const prev=new Map([[key(start),null]]); let q=[start];
+  while(q.length){const nq=[];for(const p of q){
+    if(p[0]===4){const path=[];let k=key(p),cur=p;while(prev.get(k)){const [pk,mv]=prev.get(k);path.unshift(mv);k=pk}return path}
+    const g=new Int8Array(36).fill(-1);cars.forEach((c,i)=>{for(let k=0;k<c.len;k++){const r=c.h?c.r:p[i]+k,cc=c.h?p[i]+k:c.c;g[r*6+cc]=i}});
+    cars.forEach((c,i)=>{for(const d of[-1,1]){let x=p[i];while(true){const nx=x+d,cell=d<0?nx:nx+c.len-1;if(cell<0||cell>=N)break;
+      const r=c.h?c.r:cell,cc=c.h?cell:c.c;if(g[r*6+cc]>=0)break;x=nx;const n=p.slice();n[i]=x;const k=key(n);
+      if(!prev.has(k)){prev.set(k,[key(p),[i,x]]);nq.push(n)}}}})
+  }q=nq}
+  return null}
+
+// ===== 繪製 =====
+function buildDeco(){
+  const svg=$('deco');const w=100;let s=`<svg viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">`;
+  // 斑馬線
+  const zebra=(x,y,horiz)=>{let o='';for(let i=0;i<5;i++)o+=horiz?`<rect x="${x+i*2.2}" y="${y}" width="1.2" height="5" fill="#fff" opacity=".9"/>`:`<rect x="${x}" y="${y+i*2.2}" width="5" height="1.2" fill="#fff" opacity=".9"/>`;return o};
+  s+=zebra(15,1.8,true)+zebra(68,1.8,true)+zebra(15,93.2,true)+zebra(68,93.2,true)+zebra(1.8,60,false)+zebra(1.8,14,false);
+  s+=`<rect x="40" y="2" width="20" height="1" fill="#fff" opacity=".6"/><rect x="40" y="97" width="20" height="1" fill="#fff" opacity=".6"/>`;
+  svg.outerHTML=s+'</svg>';
+  document.querySelector('#frame svg').classList.add('deco');
+}
+function layout(){
+  const cs=cellSize(), gap=cs*0.05;
+  gridEl.querySelectorAll('.cell').forEach(e=>{const i=+e.dataset.i,r=Math.floor(i/6),c=i%6;
+    Object.assign(e.style,{left:c*cs+gap+'px',top:r*cs+gap+'px',width:cs-gap*2+'px',height:cs-gap*2+'px'})});
+  cars.forEach((c,i)=>placeCar(i));
+  // 出口
+  const wrap=$('boardWrap').clientWidth, bx=wrap*0.09, by=wrap*0.09;
+  const ex=$('exitTag');Object.assign(ex.style,{top:by+EXITR*cs+'px',height:cs+'px',width:bx+'px'});
+  const gate=$('gate');Object.assign(gate.style,{left:N*cs-6+'px',top:EXITR*cs+gap+'px',height:cs-gap*2+'px',width:wrap*0.09+12+'px'});
+}
+function placeCar(i,px){
+  const c=cars[i],el=c.el,cs=cellSize(),pad=cs*0.04;
+  const p=px!==undefined?px:pos[i]*cs;
+  const L=c.len*cs-pad*2, S=cs-pad*2;
+  if(c.h)Object.assign(el.style,{left:p+pad+'px',top:c.r*cs+pad+'px',width:L+'px',height:S+'px'});
+  else Object.assign(el.style,{left:c.c*cs+pad+'px',top:p+pad+'px',width:S+'px',height:L+'px'});
+}
+function loadLevel(n){
+  L=Math.max(0,Math.min(LEVELS.length-1,n));save.cur=L;persist();
+  const lv=LEVELS[L];optimal=lv.m;won=false;moves=0;hist=[];
+  gridEl.innerHTML='';
+  for(let i=0;i<36;i++){const d=document.createElement('div');d.className='cell';d.dataset.i=i;gridEl.appendChild(d)}
+  const gate=document.createElement('div');gate.id='gate';
+  Object.assign(gate.style,{position:'absolute',background:'#d9dde2',borderRadius:'0 8px 8px 0',
+    backgroundImage:'repeating-linear-gradient(90deg,transparent 0 8px,rgba(255,255,255,.7) 8px 12px)'});
+  gridEl.appendChild(gate);
+  let n2=0,n3=0;
+  cars=lv.c.map((a,i)=>{
+    const c={h:a[0],len:a[1],r:a[2],c:a[3]};
+    const st=i===0?{body:'#ff3b3b',dark:'#b81414',type:'player'}:(c.len===2?CAR2[(n2++ + L)%CAR2.length]:CAR3[(n3++ + L)%CAR3.length]);
+    const el=document.createElement('div');el.className='car';el.innerHTML=carSVG(c.len,st,!!c.h);
+    c.el=el;gridEl.appendChild(el);bindDrag(el,i);return c});
+  pos=cars.map(c=>c.h?c.c:c.r);
+  layout();updHud();
+}
+function updHud(){
+  $('hLevel').textContent=L+1;$('hMoves').textContent=moves;$('hBest').textContent=optimal;$('hDiff').textContent=diffOf(L).name;
+  $('bUndo').disabled=!hist.length||won;
+}
+
+// ===== 拖曳 =====
+let dragging=null;
+function carAt(x,y){
+  const r=gridEl.getBoundingClientRect(),cs=r.width/N;
+  const c=Math.floor((x-r.left)/cs),rr=Math.floor((y-r.top)/cs);
+  if(c<0||c>=N||rr<0||rr>=N)return -1;
+  return occ(pos,-1)[rr*6+c];
+}
+gridEl.addEventListener('pointerdown',e=>{
+  if(won||dragging)return;
+  const i=carAt(e.clientX,e.clientY);
+  if(i>=0)cars[i].el._start(e);
+});
+function bindDrag(el,i){
+  el._start=e=>{
+    if(won||dragging)return;e.preventDefault();ac();
+    clearHint();
+    const c=cars[i],cs=cellSize(),[lo,hi]=range(i);
+    dragging={i,el,start:c.h?e.clientX:e.clientY,base:pos[i]*cs,lo:lo*cs,hi:hi*cs,cur:pos[i]*cs,id:e.pointerId,hitEdge:false};
+    el.classList.add('drag','lit');clearTimeout(el._off);el.setPointerCapture(e.pointerId);engineStart(c.len===3);dragging.t=performance.now();
+  };
+  el.addEventListener('pointermove',e=>{
+    if(!dragging||dragging.i!==i||e.pointerId!==dragging.id)return;
+    const c=cars[i];const d=(c.h?e.clientX:e.clientY)-dragging.start;
+    let p=dragging.base+d;const raw=p;p=Math.max(dragging.lo,Math.min(dragging.hi,p));
+    // 紅車可以拖出出口
+    if(i===0&&dragging.hi===4*cellSize()&&raw>p){p=Math.min(raw,6*cellSize())}
+    const edge=raw!==p&&!(i===0&&p>4*cellSize());
+    if(edge&&!dragging.hitEdge){SFX.bump()}dragging.hitEdge=edge;
+    if(Math.abs(p-dragging.cur)>0.5){el.classList.toggle('fwd',p>dragging.cur);el.classList.toggle('back',p<dragging.cur)}
+    const now=performance.now(),dt=Math.max(16,now-dragging.t);engineSpeed(Math.abs(p-dragging.cur)/cellSize()/(dt/1000));dragging.t=now;
+    clearTimeout(dragging.idle);dragging.idle=setTimeout(()=>engineSpeed(0),120);
+    dragging.cur=p;placeCar(i,p);
+  });
+  const end=e=>{
+    if(!dragging||dragging.i!==i)return;
+    const c=cars[i],cs=cellSize();el.classList.remove('drag');clearTimeout(el._off);el._off=setTimeout(()=>{if(!el.classList.contains('drag'))el.classList.remove('lit','fwd','back')},450);
+    clearTimeout(dragging.idle);engineStop();
+    let np=Math.round(Math.min(dragging.cur,dragging.hi)/cs);
+    dragging=null;
+    if(np!==pos[i]){hist.push(pos.slice());pos[i]=np;moves++}
+    placeCar(i);updHud();
+    if(pos[0]===4)win();
+  };
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+}
+
+// ===== 勝利 =====
+function starsFor(m){return m<=optimal?3:m<=Math.ceil(optimal*1.5)+1?2:1}
+function win(){
+  won=true;updHud();dingDong();
+  const c=cars[0],cs=cellSize();
+  clearTimeout(c.el._off);c.el.classList.add('lit','fwd');c.el.classList.remove('back');c.el.style.transition='left .7s cubic-bezier(.5,0,.8,.4)';c.el.style.left=(8*cs)+'px';
+  const st=starsFor(moves);
+  if((save.stars[L]||0)<st)save.stars[L]=st;persist();
+  setTimeout(()=>{
+    SFX.win();confetti();
+    $('winStars').innerHTML=[0,1,2].map(k=>`<span class="${k<st?'':'off'}">★</span>`).join('');
+    $('winText').innerHTML=`你用了 <b>${moves}</b> 步（最少 ${optimal} 步）<br>${st===3?'太厲害了，最佳解！🏆':st===2?'很棒！再少幾步就能拿三顆星喔':'過關了！試試用更少步數挑戰三星'}`;
+    $('bNext').style.display=L<LEVELS.length-1?'':'none';
+    $('winTitle').textContent=L<LEVELS.length-1?'停車大闖關成功！':'🎉 全部關卡通關！';
+    $('ovWin').classList.add('show');
+  },1000);
+}
+function confetti(){
+  const cv=$('confetti'),x=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#ff3b3b','#ffd21f','#3aa0ff','#56c94a','#ff8a1f','#ff7ac0'];
+  const ps=Array.from({length:140},()=>({x:innerWidth/2,y:innerHeight*0.4,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,r:Math.random()*6+4,c:cols[Math.random()*6|0],a:Math.random()*6,va:(Math.random()-.5)*.4}));
+  let t=0;(function f(){x.clearRect(0,0,cv.width,cv.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.35;p.vx*=.99;p.a+=p.va;
+    x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);x.restore()});
+    if(++t<150)requestAnimationFrame(f);else x.clearRect(0,0,cv.width,cv.height)})();
+}
+
+// ===== 提示 =====
+let hintTimer=null;
+function clearHint(){cars.forEach(c=>c.el.classList.remove('hint'));clearTimeout(hintTimer)}
+function hint(){
+  if(won)return;clearHint();
+  const path=solve(pos.slice());
+  if(!path){toast('目前無解？按重來試試');return}
+  const [i,x]=path[0];SFX.hint();
+  cars[i].el.classList.add('hint');
+  toast(`還差 ${path.length} 步：移動發光的車子 ${x>pos[i]?(cars[i].h?'向右 ➜':'向下 ⬇'):(cars[i].h?'⬅ 向左':'⬆ 向上')}`);
+  hintTimer=setTimeout(clearHint,3000);
+}
+function toast(t){const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,2200)}
+
+// ===== 選關 =====
+let tab=0;
+function openLevels(){tab=DIFFS.indexOf(diffOf(L));renderLevels();$('ovLevels').classList.add('show')}
+function renderLevels(){
+  $('tabs').innerHTML=DIFFS.map((d,k)=>`<button class="${k===tab?'on':''}" data-k="${k}">${d.name}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=+b.dataset.k;renderLevels()});
+  const from=DIFFS[tab].from,to=tab<DIFFS.length-1?DIFFS[tab+1].from:LEVELS.length;
+  let h='';for(let i=from;i<to;i++){const s=save.stars[i]||0;
+    h+=`<button class="${i===L?'cur':''}" data-i="${i}">${i+1}<small>${s?'★'.repeat(s):''}</small></button>`}
+  $('lvGrid').innerHTML=h;
+  $('lvGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('ovLevels').classList.remove('show');loadLevel(+b.dataset.i)});
+}
+
+// ===== 按鈕 =====
+$('bLevels').onclick=openLevels;
+$('bClose').onclick=()=>$('ovLevels').classList.remove('show');
+$('bUndo').onclick=()=>{if(!hist.length||won)return;const old=pos;pos=hist.pop();moves--;cars.forEach((c,i)=>{if(old[i]!==pos[i]){const el=c.el;clearTimeout(el._off);el.classList.add('lit',pos[i]>old[i]?'fwd':'back');el._off=setTimeout(()=>el.classList.remove('lit','fwd','back'),500)}placeCar(i)});SFX.drop();updHud()};
+$('bReset').onclick=()=>loadLevel(L);
+$('bHint').onclick=hint;
+$('bRetry').onclick=()=>{$('ovWin').classList.remove('show');loadLevel(L)};
+$('bNext').onclick=()=>{$('ovWin').classList.remove('show');loadLevel(L+1)};
+function setSoundIcon(){$('bSound').textContent=soundOn?'🔊':'🔇'}
+$('bSound').onclick=()=>{soundOn=!soundOn;try{localStorage.setItem('park_sound',soundOn?'1':'0')}catch(e){}setSoundIcon()};
+setSoundIcon();
+addEventListener('resize',layout);
+
+buildDeco();
+loadLevel(save.cur||0);
+$('bStart').onclick=()=>{ac();playIntro();$('ovStart').classList.remove('show')};
+</script>
+</body>
+</html>
