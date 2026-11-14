@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>七巧板</title>
+<style>
+  :root { --bg:#1d2433; --panel:#2a3347; --ink:#f3ead7; --accent:#f2b84b; --muted:#93a0b8; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif; }
+  body { display:flex; flex-direction:column; align-items:center; padding:10px 16px; gap:8px; }
+  header { width:100%; max-width:1200px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; color:var(--accent); letter-spacing:4px; }
+  .stat { background:var(--panel); border-radius:8px; padding:5px 12px; font-size:15px; }
+  .stat b { color:var(--accent); font-variant-numeric:tabular-nums; }
+  .spacer { flex:1; }
+  #wrap { width:100%; max-width:1200px; position:relative; display:flex; justify-content:center; }
+  canvas#game { width:100%; display:block; border-radius:14px; background:#f3ead7; touch-action:none; cursor:grab; }
+  .bar { width:100%; max-width:1200px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  button { font:inherit; font-size:15px; color:var(--ink); background:var(--panel); border:1px solid #3d4963;
+    border-radius:10px; padding:9px 14px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#2a2010; border-color:var(--accent); font-weight:bold; }
+  .tip { color:var(--muted); font-size:13px; text-align:center; max-width:960px; }
+  .overlay { position:fixed; inset:0; background:rgba(10,14,22,.78); display:none; align-items:center;
+    justify-content:center; padding:16px; z-index:10; }
+  .overlay.show { display:flex; }
+  .dialog { background:var(--panel); border-radius:16px; padding:22px; max-width:640px; width:100%;
+    max-height:90vh; overflow:auto; text-align:center; }
+  .dialog h2 { margin:0 0 12px; color:var(--accent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin:14px 0; }
+  .lv { background:#f3ead7; color:#2a2010; border:2px solid transparent; border-radius:12px; padding:6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; font-size:13px; }
+  .lv.cur { border-color:var(--accent); }
+  .lv canvas { width:90px; height:70px; }
+  .lv .st { color:#c98a12; letter-spacing:2px; min-height:16px; }
+  #menu .dialog { max-width:1200px; max-height:96vh; padding:26px; }
+  #menu h2 { font-size:30px; }
+  #menu .grid { grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
+  #menu .lv { font-size:17px; padding:10px; gap:4px; }
+  #menu .lv canvas { width:144px; height:112px; }
+  #menu .lv .st { font-size:18px; min-height:22px; }
+  #menu #bClose { font-size:18px; padding:11px 28px; }
+  .stars { font-size:40px; color:var(--accent); letter-spacing:6px; margin:6px 0; }
+  /* 橫拿手機（畫面矮）：把上下的列壓扁，讓遊戲區更大 */
+  @media (max-height:560px) {
+    body { padding:4px 10px; gap:4px; }
+    h1 { font-size:17px; letter-spacing:2px; }
+    header { gap:8px; }
+    .stat { font-size:13px; padding:2px 8px; }
+    .bar { gap:5px; }
+    .bar button { font-size:13px; padding:5px 9px; border-radius:8px; }
+    .tip { display:none; }
+  }
+  @media (pointer:coarse) { .tip { display:none; } }
+  @media (max-width:560px) {
+    body { padding:8px 8px; gap:6px; }
+    h1 { font-size:18px; }
+    header { gap:8px; }
+    .stat { font-size:13px; padding:3px 8px; }
+    .bar { gap:5px; }
+    .bar button { font-size:13px; padding:7px 9px; }
+    .tip { font-size:12px; }
+  }
+  .row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>七巧板</h1>
+  <div class="stat">第 <b id="lvNo">1</b> 關　<b id="lvName"></b></div>
+  <div class="spacer"></div>
+  <div class="stat">時間 <b id="time">0:00</b></div>
+  <div class="stat">提示 <b id="hints">0</b></div>
+</header>
+<div id="wrap"><canvas id="game"></canvas></div>
+<div class="bar">
+  <button id="bL">⟲ 左轉</button>
+  <button id="bR">⟳ 右轉</button>
+  <button id="bF">⇋ 翻面</button>
+  <button id="bH">💡 提示</button>
+  <button id="bReset">↺ 重來</button>
+  <button id="bPrev">◀ 上一關</button>
+  <button id="bNext">下一關 ▶</button>
+  <button id="bMenu">☰ 選關</button>
+  <button id="bMusic">🎵 音樂：開</button>
+  <button id="bSfx">🔊 音效：開</button>
+</div>
+<div class="tip">拖曳移動｜點一下板塊＝右轉 45°｜滾輪旋轉｜右鍵或「翻面」＝翻轉（平行四邊形會用到）｜鍵盤 Q/E 旋轉、F 翻面</div>
+
+<div class="overlay" id="menu"><div class="dialog">
+  <h2>選擇關卡</h2>
+  <div class="grid" id="grid"></div>
+  <button id="bClose">關閉</button>
+</div></div>
+
+<div class="overlay" id="win"><div class="dialog">
+  <h2>完成！</h2>
+  <div class="stars" id="wStars"></div>
+  <div id="wInfo"></div>
+  <div class="row">
+    <button id="wAgain">再玩一次</button>
+    <button id="wMenu">選關</button>
+    <button class="primary" id="wNext">下一關 ▶</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+const U = 74, SNAP = 18;
+// 版面：橫向畫面→板塊放左右兩側；直向畫面→板塊放下方（畫布較高）
+// slots 順序對應 ORDER：大、大、中三角、正方形、小、小、平行四邊形
+const LAYOUTS = {
+  side:  { W:1110, H:500, BX:520, BY:250, board:[230, 0, 810, 500],
+           trays:[[0, 0, 230, 500], [810, 0, 1110, 500]],
+           slots:[[115,118],[115,382],[900,110],[1050,85],[1050,250],[1050,415],[900,372]] },
+  stack: { W:530, H:1030, BX:265, BY:252, board:[0, 0, 530, 505],
+           trays:[[0, 505, 530, 1030]],
+           slots:[[140,620],[390,620],[85,820],[445,820],[150,965],[380,965],[262,820]] },
+};
+let LY = LAYOUTS.side, W = LY.W, H = LY.H, BX = LY.BX, BY = LY.BY;
+function pickLayout() { return innerWidth >= innerHeight ? LAYOUTS.side : LAYOUTS.stack; }
+const R2 = Math.SQRT2;
+const COLORS = { L:['#e4572e','#f29e4c'], M:['#2e86ab'], S:['#76b041','#17bebb'], Q:['#f2c14e'], P:['#a05cc5'] };
+const ORDER = ['L','L','M','Q','S','S','P'];
+
+// 板塊外形（單位長 = 小三角形的直角邊），以重心為原點
+const SHAPES = (() => {
+  const raw = { L:[[0,0],[2,0],[0,2]], M:[[0,0],[R2,0],[0,R2]], S:[[0,0],[1,0],[0,1]],
+                Q:[[0,0],[1,0],[1,1],[0,1]], P:[[0,0],[1,0],[2,1],[1,1]] };
+  const out = {};
+  for (const k in raw) { const c = centroid(raw[k]); out[k] = raw[k].map(p => [p[0]-c[0], p[1]-c[1]]); }
+  return out;
+})();
+
+function centroid(poly) {
+  let x = 0, y = 0; for (const p of poly) { x += p[0]; y += p[1]; }
+  return [x/poly.length, y/poly.length];
+}
+function xform(type, rot, flip) {
+  const a = rot * Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
+  return SHAPES[type].map(p => { const x = flip ? -p[0] : p[0], y = p[1]; return [x*c - y*s, x*s + y*c]; });
+}
+function inPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length-1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj-xi)*(y-yi)/(yj-yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// 關卡：每一關是七塊板的解答位置（格點座標），剪影 = 七塊的聯集
+const T = (t, ...n) => { const pts = []; for (let i = 0; i < n.length; i += 2) pts.push([n[i], n[i+1]]); return { t, pts }; };
+const SQ4 = (dx, dy) => [ // 用 M、Q、S、S、P 拼出 2x2 正方形
+  T('M', 0+dx,2+dy, 2+dx,2+dy, 1+dx,1+dy), T('Q', 0+dx,0+dy, 1+dx,0+dy, 1+dx,1+dy, 0+dx,1+dy),
+  T('S', 0+dx,1+dy, 1+dx,1+dy, 0+dx,2+dy), T('P', 1+dx,0+dy, 2+dx,1+dy, 2+dx,2+dy, 1+dx,1+dy),
+  T('S', 1+dx,0+dy, 2+dx,0+dy, 2+dx,1+dy) ];
+// 組合用的零件（都落在格點上），可用 G() 旋轉 / 翻轉後擺到指定位置
+const A1 = [ T('L',0,0,2,0,0,2), T('L',2,0,2,2,0,2) ];                 // 兩大三角：2x2 正方形
+const A2 = [ T('L',2,0,2,2,0,2), T('L',2,0,4,2,2,2) ];                 // 兩大三角：尖端朝上的大三角
+const A3 = [ T('L',0,0,2,0,2,2), T('L',2,0,4,2,2,2) ];                 // 兩大三角：平行四邊形
+const L0 = [ T('L',0,0,2,0,0,2) ], M0 = [ T('M',0,1,2,1,1,0) ];
+const B1 = SQ4(0,0);                                                    // 五小塊：2x2 正方形
+const B2 = [ T('Q',1,0,2,0,2,1,1,1), T('S',0,0,1,0,1,1), T('M',1,1,3,1,2,2),
+             T('P',3,0,4,0,3,1,2,1), T('S',2,0,3,0,2,1) ];              // 五小塊：尖端朝下的大三角
+const B3 = [ T('S',0,0,1,0,1,1), T('Q',1,0,2,0,2,1,1,1), T('S',2,0,3,0,2,1), T('P',2,1,3,1,4,0,3,0) ]; // 上寬下窄梯形（不含 M）
+const B4 = [ T('S',0,0,1,0,0,1), T('P',1,0,2,0,1,1,0,1), T('S',1,1,2,0,2,1), T('Q',2,0,3,0,3,1,2,1) ]; // 3x1 長條（不含 M）
+const B6 = [ T('S',0,0,1,0,0,1), T('M',0,1,2,1,1,0), T('P',1,0,2,0,3,1,2,1), T('S',2,0,3,0,3,1), T('Q',3,0,4,0,4,1,3,1) ]; // 4x1 長條
+const TF = { I:(x,y)=>[x,y], H:(x,y)=>[-x,y], V:(x,y)=>[x,-y], R:(x,y)=>[-y,x], L:(x,y)=>[y,-x], U:(x,y)=>[-x,-y] };
+function G(parts, tf, dx, dy) {
+  const out = parts.map(s => ({ t:s.t, pts:s.pts.map(([x, y]) => TF[tf](x, y)) }));
+  let mx = 1e9, my = 1e9;
+  for (const s of out) for (const p of s.pts) { mx = Math.min(mx, p[0]); my = Math.min(my, p[1]); }
+  for (const s of out) for (const p of s.pts) { p[0] += dx - mx; p[1] += dy - my; }
+  return out;
+}
+const C = (name, ...g) => ({ name, p:g.flatMap(a => G(...a)) });
+
+const LEVELS = [
+  { name:'小屋', p:[ T('L',2,0,2,2,0,2), T('L',2,0,4,2,2,2), ...SQ4(1,2) ] },
+  { name:'小魚', p:[ T('L',0,2,2,0,2,2), T('L',0,2,2,2,2,4), T('P',2,0,3,1,3,2,2,1), T('S',2,1,3,2,2,2),
+                     T('Q',2,2,3,2,3,3,2,3), T('S',2,3,3,3,2,4), T('M',3,2,4,1,4,3) ] },
+  { name:'帆船', p:[ T('L',2,1,2,3,0,3), T('L',2,1,4,3,2,3), T('M',2,-1,3,0,2,1), T('S',0,3,1,3,1,4),
+                     T('Q',1,3,2,3,2,4,1,4), T('S',2,3,3,3,2,4), T('P',2,4,3,4,4,3,3,3) ] },
+  { name:'火箭', p:[ T('M',1,1,3,1,2,0), T('L',1,1,3,1,1,3), T('L',3,1,3,3,1,3), T('S',1,3,1,4,0,4),
+                     T('Q',1,3,2,3,2,4,1,4), T('S',2,3,3,4,2,4), T('P',2,3,3,3,4,4,3,4) ] },
+  { name:'雙峰山', p:[ T('L',2,2,2,4,0,4), T('L',2,2,4,4,2,4), T('M',4,4,6,4,5,3), T('S',1,4,2,4,2,5),
+                     T('Q',2,4,3,4,3,5,2,5), T('S',3,4,4,4,3,5), T('P',3,5,4,5,5,4,4,4) ] },
+  { name:'長方形', p:[ T('L',0,0,2,0,0,2), T('L',2,0,2,2,0,2), ...SQ4(2,0) ] },
+  { name:'梯形', p:[ T('L',2,0,2,2,0,2), T('L',4,0,6,2,4,2), ...SQ4(2,0) ] },
+  { name:'平行四邊形', p:[ T('L',0,0,2,0,2,2), T('L',4,0,4,2,6,2), ...SQ4(2,0) ] },
+  { name:'大三角形', p:[ T('L',0,0,0,2,2,2), T('L',2,2,2,4,4,4), ...SQ4(0,2) ] },
+  { name:'鑽石', p:[ T('L',0,2,2,0,2,2), T('L',2,0,4,2,2,2), T('Q',1,2,2,2,2,3,1,3), T('S',0,2,1,2,1,3),
+                     T('M',1,3,3,3,2,4), T('P',3,2,4,2,3,3,2,3), T('S',2,2,3,2,2,3) ] },
+  C('陀螺',   [B6,'I',0,0], [A2,'V',0,1]),
+  C('帽子',   [A1,'I',1,0], [B6,'I',0,2]),
+  C('靴子',   [B6,'R',0,0], [A1,'I',1,2]),
+  C('旗子',   [B6,'R',0,0], [A1,'I',1,0]),
+  C('子彈',   [B6,'R',0,0], [A2,'R',1,0]),
+  C('滑梯',   [B6,'I',0,0], [A3,'I',0,1]),
+  C('聖誕樹', [M0,'I',1,0], [A2,'I',0,1], [B3,'V',0,3]),
+  C('獎盃',   [A2,'V',0,0], [M0,'I',1,2], [B3,'V',0,3]),
+  C('沙漏',   [A2,'V',0,0], [B2,'V',0,2]),
+  C('松樹',   [A2,'I',0,0], [B2,'V',0,2]),
+  C('花瓶',   [B3,'I',0,0], [A1,'I',1,1], [M0,'V',1,3]),
+  C('燈塔',   [M0,'I',1,0], [A1,'I',1,1], [B3,'V',0,3]),
+  C('拱橋',   [B6,'I',0,0], [L0,'I',0,1], [L0,'H',2,1]),
+  C('皇冠',   [L0,'V',0,0], [L0,'U',2,0], [B6,'I',0,2]),
+  C('狐狸',   [L0,'V',0,0], [L0,'U',2,0], [B2,'I',0,2]),
+  C('推車',   [A1,'I',0,0], [B6,'I',1,2]),
+  C('斧頭',   [B6,'R',0,0], [A3,'R',1,0]),
+  C('卡車',   [A1,'I',0,0], [M0,'R',2,0], [B4,'I',0,2]),
+  C('工廠',   [M0,'I',0,0], [A1,'I',0,1], [B4,'R',2,0]),
+  C('貓臉',   [L0,'V',0,0], [L0,'U',2,0], [B1,'I',1,2]),
+  C('蝴蝶',   [L0,'U',0,0], [L0,'V',3,0], [B6,'R',2,0]),
+  C('飛機',   [L0,'U',0,1], [L0,'V',3,1], [B6,'R',2,0]),
+  C('雨傘',   [A2,'I',0,0], [B6,'R',2,2]),
+  C('鑰匙',   [A1,'I',0,0], [B6,'I',2,1]),
+  C('路牌',   [A1,'I',0,0], [B6,'R',1,2]),
+  C('鑽頭',   [A1,'I',1,0], [B3,'I',0,2], [M0,'V',1,3]),
+  C('煙斗',   [A3,'I',0,0], [B1,'I',2,2]),
+  C('階梯',   [A1,'I',0,0], [B1,'I',1,2]),
+  C('飛碟',   [M0,'I',1,0], [B3,'V',0,1], [A2,'V',0,2]),
+  C('小鳥',   [A3,'I',0,0], [B2,'I',1,2]),
+  C('雪橇',   [A2,'I',0,0], [B6,'I',2,2]),
+  C('狗屋',   [A2,'I',0,0], [B1,'I',0,2]),
+  C('風車葉', [A2,'I',0,0], [B2,'I',2,2]),
+  C('鋸齒',   [L0,'U',0,0], [L0,'U',2,0], [B6,'I',0,2]),
+  C('雙帆船', [L0,'U',0,0], [L0,'U',2,0], [B3,'I',0,2], [M0,'V',1,3]),
+  C('天鵝',   [M0,'I',0,0], [A3,'I',0,1], [B3,'V',1,3]),
+  C('雙旗',   [B6,'R',0,0], [L0,'V',1,0], [L0,'V',1,2]),
+  C('飛彈',   [L0,'U',0,2], [L0,'V',3,2], [B6,'R',2,0]),
+  C('鐘樓',   [M0,'I',0,0], [A1,'I',0,1], [B4,'I',0,3]),
+  C('渡輪',   [M0,'I',1,0], [A1,'I',1,1], [B3,'I',0,3]),
+];
+
+// 找出某塊板要怎麼轉 / 翻才會等於解答多邊形
+function orientFor(type, pts) {
+  const c = centroid(pts);
+  for (let f = 0; f < 2; f++) for (let r = 0; r < 8; r++) {
+    const v = xform(type, r, f);
+    if (v.every(a => pts.some(b => Math.hypot(a[0]-(b[0]-c[0]), a[1]-(b[1]-c[1])) < 1e-3))) return { r, f, c };
+  }
+  return null;
+}
+for (const L of LEVELS) for (const s of L.p) if (!orientFor(s.t, s.pts)) console.error('關卡資料錯誤', L.name, s);
+
+// ---------- 狀態 ----------
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+const mctx = mask.getContext('2d', { willReadFrequently:true });
+let dpr = 1, cur = 0, pieces = [], target = [], snapPts = [], sel = null, drag = null;
+let won = false, hints = 0, hintShow = null, t0 = 0, elapsed = 0;
+let save = {};
+try { save = JSON.parse(localStorage.getItem('tangram-save') || '{}'); } catch (e) {}
+function persist() { try { localStorage.setItem('tangram-save', JSON.stringify(save)); } catch (e) {} }
+
+function inBoard(x, y, L) { const b = L.board; return x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]; }
+function applyLayout(L) {
+  if (L === LY) return;
+  const old = LY, dx = L.BX - old.BX, dy = L.BY - old.BY;
+  for (const s of target) s.pts = s.pts.map(([x, y]) => [x + dx, y + dy]);
+  snapPts = snapPts.map(([x, y]) => [x + dx, y + dy]);
+  if (hintShow) hintShow.pts = hintShow.pts.map(([x, y]) => [x + dx, y + dy]);
+  for (const p of pieces) {
+    if (inBoard(p.x, p.y, old)) { p.x += dx; p.y += dy; }       // 已放進拼圖區的跟著拼圖區移動
+    else { p.x = L.slots[p.slot][0]; p.y = L.slots[p.slot][1]; } // 還在板塊區的放回新的位置
+  }
+  LY = L; W = L.W; H = L.H; BX = L.BX; BY = L.BY;
+  mask.width = W; mask.height = H;
+}
+function fitCanvas() {
+  // 讓畫布同時塞得進螢幕寬度與高度（扣掉上方資訊列和按鈕列）
+  const others = document.querySelector('header').offsetHeight + document.querySelector('.bar').offsetHeight
+    + document.querySelector('.tip').offsetHeight;
+  const cs = getComputedStyle(document.body);
+  const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.rowGap || cs.gap || 0) * 3;
+  const availH = Math.max(200, innerHeight - others - pad - 2);
+  const availW = document.getElementById('wrap').clientWidth;
+  const w = Math.min(availW, availH * W / H);
+  cv.style.width = Math.floor(w) + 'px';
+}
+function resize() {
+  applyLayout(pickLayout());
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr; fitCanvas(); draw();
+}
+function verts(p) { return xform(p.type, p.rot, p.flip).map(v => [p.x + v[0]*U, p.y + v[1]*U]); }
+
+function loadLevel(i) {
+  cur = (i + LEVELS.length) % LEVELS.length;
+  const L = LEVELS[cur];
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of L.p) for (const [x, y] of s.pts) { x0 = Math.min(x0,x); x1 = Math.max(x1,x); y0 = Math.min(y0,y); y1 = Math.max(y1,y); }
+  const ox = BX - (x0+x1)/2*U, oy = BY - (y0+y1)/2*U;
+  target = L.p.map(s => ({ t:s.t, pts:s.pts.map(([x,y]) => [ox + x*U, oy + y*U]) }));
+  // 只取剪影外框上的頂點當吸附點，避免洩漏內部拼法
+  snapPts = [];
+  for (const s of target) for (const v of s.pts) {
+    if (snapPts.some(q => Math.hypot(q[0]-v[0], q[1]-v[1]) < 1)) continue;
+    let edge = false;
+    for (let k = 0; k < 12 && !edge; k++) {
+      const a = 0.2 + k*Math.PI/6, x = v[0] + Math.cos(a)*7, y = v[1] + Math.sin(a)*7;
+      if (!target.some(tp => inPoly(x, y, tp.pts))) edge = true;
+    }
+    if (edge) snapPts.push(v);
+  }
+  const idx = { L:0, S:0 };
+  pieces = ORDER.map((type, k) => {
+    const n = idx[type] !== undefined ? idx[type]++ : 0;
+    return { type, slot:k, color:COLORS[type][n], x:LY.slots[k][0], y:LY.slots[k][1], rot:Math.floor(Math.random()*8), flip:0 };
+  });
+  sel = null; drag = null; won = false; hints = 0; hintShow = null; t0 = performance.now(); elapsed = 0;
+  document.getElementById('lvNo').textContent = cur + 1;
+  document.getElementById('lvName').textContent = L.name;
+  document.getElementById('hints').textContent = 0;
+  document.getElementById('win').classList.remove('show');
+  draw();
+}
+
+// ---------- 繪圖 ----------
+function path(c, pts) { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); }
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#f3ead7'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#e6dac0';
+  for (const t of LY.trays) ctx.fillRect(t[0], t[1], t[2]-t[0], t[3]-t[1]);
+  ctx.strokeStyle = '#cdbf9f'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.beginPath();
+  const b = LY.board;   // 在拼圖區與板塊區的交界畫虛線
+  if (b[0] > 0) { ctx.moveTo(b[0], 0); ctx.lineTo(b[0], H); }
+  if (b[2] < W) { ctx.moveTo(b[2], 0); ctx.lineTo(b[2], H); }
+  if (b[3] < H) { ctx.moveTo(0, b[3]); ctx.lineTo(W, b[3]); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#3a4258'; ctx.strokeStyle = '#3a4258'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  for (const s of target) { path(ctx, s.pts); ctx.fill(); ctx.stroke(); }
+  for (const p of pieces) {
+    path(ctx, verts(p));
+    ctx.fillStyle = p.color; ctx.globalAlpha = (p === sel && drag) ? 0.88 : 1; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = p === sel ? 3.5 : 2; ctx.strokeStyle = p === sel ? '#ffffff' : 'rgba(40,30,10,.55)'; ctx.stroke();
+  }
+  if (hintShow) {
+    path(ctx, hintShow.pts); ctx.setLineDash([7, 5]); ctx.lineWidth = 3; ctx.strokeStyle = hintShow.color; ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ---------- 聲音（全部即時合成的原創音樂與音效，不使用任何外部音檔） ----------
+const Snd = (() => {
+  let ac = null, musicGain, sfxGain, timer = null, step = 0, nextT = 0;
+  let musicOn = save.music !== false, sfxOn = save.sfx !== false;
+  const STEP = 60 / 92 / 2;                       // 八分音符長度
+  const PENTA = [0, 2, 4, 7, 9];                  // D 宮調五聲音階
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const deg = i => 62 + PENTA[((i % 5) + 5) % 5] + 12 * Math.floor(i / 5);
+  const _ = -1;
+  // 原創旋律「巧板小調」：四句、每句 16 個八分音符
+  const MELODY = [
+    5,_,7,6, 5,_,3,_, 4,5,7,_, 6,_,_,_,
+    7,_,8,7, 6,5,3,_, 4,_,3,2, 3,_,_,_,
+    5,6,7,_, 9,_,8,7, 6,_,5,6, 7,_,_,_,
+    8,7,6,5, 3,_,4,5, 3,_,2,_, 5,_,_,_ ];
+  const BASS = [38,38, 35,35, 43,43, 45,38];      // 每小節的低音
+  function init() {
+    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ac = new AC();
+    musicGain = ac.createGain(); musicGain.gain.value = musicOn ? 0.16 : 0; musicGain.connect(ac.destination);
+    sfxGain = ac.createGain(); sfxGain.gain.value = 0.35; sfxGain.connect(ac.destination);
+    nextT = ac.currentTime + 0.1;
+    timer = setInterval(schedule, 100);
+  }
+  // 撥弦音色：三角波 + 高八度泛音，快速衰減，像古箏
+  function pluck(freq, t, dur, vol, out) {
+    const g = ac.createGain(); g.connect(out);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    for (const [type, mul, amp] of [['triangle', 1, 1], ['sine', 2, 0.35], ['sine', 3.01, 0.12]]) {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq * mul * 1.012, t);
+      o.frequency.exponentialRampToValueAtTime(freq * mul, t + 0.05);   // 撥弦時的微小滑音
+      og.gain.value = amp; o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.05);
+    }
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0) {
+    if (!ac || !sfxOn) return;
+    const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + dur + 0.02);
+  }
+  function schedule() {
+    if (!ac || ac.state !== 'running') return;
+    if (nextT < ac.currentTime) nextT = ac.currentTime + 0.05;
+    while (nextT < ac.currentTime + 0.35) {
+      if (musicOn) {
+        const n = MELODY[step % MELODY.length];
+        if (n !== _) pluck(hz(deg(n)), nextT, 1.1, 0.9, musicGain);
+        if (step % 8 === 0) pluck(hz(BASS[(step / 8 | 0) % BASS.length]), nextT, 1.8, 0.8, musicGain);
+        if (step % 8 === 4) pluck(hz(BASS[(step / 8 | 0) % BASS.length] + 12), nextT, 0.9, 0.35, musicGain);
+      }
+      step++; nextT += STEP;
+    }
+  }
+  const sfx = {
+    pick:  () => tone('sine', 480, 720, 0.07, 0.5),
+    drop:  () => tone('sine', 240, 150, 0.10, 0.6),
+    snap:  () => { tone('sine', 980, 900, 0.06, 0.7); tone('triangle', 1470, 1400, 0.05, 0.35); },   // 木魚般的「叩」
+    rot:   () => tone('triangle', 520, 780, 0.07, 0.45),
+    flip:  () => { tone('triangle', 780, 390, 0.09, 0.45); tone('triangle', 390, 780, 0.09, 0.35, 0.09); },
+    hint:  () => { tone('sine', 1175, 1175, 0.25, 0.4); tone('sine', 1760, 1760, 0.35, 0.35, 0.12); },
+    ui:    () => tone('square', 660, 660, 0.03, 0.15),
+    win:   () => { if (!ac || !sfxOn) return; [5,6,7,9,10,12].forEach((d, i) => pluck(hz(deg(d)), ac.currentTime + i*0.11, 1.4, 0.8, sfxGain)); },
+  };
+  return {
+    init, play: n => { if (ac && sfxOn) sfx[n](); },
+    toggleMusic() { musicOn = !musicOn; save.music = musicOn; persist(); init(); if (musicGain) musicGain.gain.setTargetAtTime(musicOn ? 0.16 : 0, ac.currentTime, 0.05); return musicOn; },
+    toggleSfx() { sfxOn = !sfxOn; save.sfx = sfxOn; persist(); init(); return sfxOn; },
+    get musicOn() { return musicOn; }, get sfxOn() { return sfxOn; }, get ctx() { return ac; },
+  };
+})();
+addEventListener('pointerdown', Snd.init, true);
+addEventListener('keydown', Snd.init, true);
+
+// ---------- 判定 ----------
+function snap(p) {
+  const cand = snapPts.slice();
+  for (const o of pieces) if (o !== p) cand.push(...verts(o));
+  let best = SNAP, dx = 0, dy = 0;
+  for (const v of verts(p)) for (const c of cand) {
+    const d = Math.hypot(c[0]-v[0], c[1]-v[1]);
+    if (d < best) { best = d; dx = c[0]-v[0]; dy = c[1]-v[1]; }
+  }
+  p.x += dx; p.y += dy;
+  p.x = Math.max(20, Math.min(W-20, p.x)); p.y = Math.max(20, Math.min(H-20, p.y));
+  return best < SNAP;
+}
+function rasterize(polys) {
+  mctx.clearRect(0, 0, W, H); mctx.fillStyle = '#000';
+  for (const pts of polys) { path(mctx, pts); mctx.fill(); }
+  return mctx.getImageData(0, 0, W, H).data;
+}
+function checkWin() {
+  if (won) return;
+  const a = rasterize(target.map(s => s.pts)), b = rasterize(pieces.map(verts));
+  let area = 0, miss = 0, out = 0;
+  for (let i = 3; i < a.length; i += 4) {
+    const A = a[i] > 127, B = b[i] > 127;
+    if (A) { area++; if (!B) miss++; } else if (B) out++;
+  }
+  if (miss < area*0.04 && out < area*0.04) finish();
+}
+function finish() {
+  won = true; sel = null; elapsed = (performance.now() - t0) / 1000;
+  const stars = (hints === 0 && elapsed < 120) ? 3 : (hints <= 1 || elapsed < 300) ? 2 : 1;
+  const old = save[cur];
+  if (!old || stars > old.stars || (stars === old.stars && elapsed < old.time)) { save[cur] = { stars, time:elapsed }; persist(); }
+  document.getElementById('wStars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  document.getElementById('wInfo').textContent = `「${LEVELS[cur].name}」用時 ${fmt(elapsed)}，使用提示 ${hints} 次`;
+  draw(); Snd.play('win');
+  setTimeout(() => { if (won) document.getElementById('win').classList.add('show'); }, 450);
+}
+function fmt(s) { s = Math.floor(s); return Math.floor(s/60) + ':' + String(s%60).padStart(2, '0'); }
+setInterval(() => { if (!won) elapsed = (performance.now() - t0) / 1000; document.getElementById('time').textContent = fmt(elapsed); }, 250);
+
+// ---------- 操作 ----------
+function pos(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; }
+function pick(x, y) { for (let i = pieces.length-1; i >= 0; i--) if (inPoly(x, y, verts(pieces[i]))) return pieces[i]; return null; }
+function settle(p, sound) { const s = snap(p); if (sound) Snd.play(s ? 'snap' : 'drop'); draw(); checkWin(); }
+function rotate(p, d) { if (!p || won) return; p.rot = (p.rot + d + 8) % 8; Snd.play('rot'); settle(p); }
+function flip(p) { if (!p || won) return; p.flip ^= 1; p.rot = (8 - p.rot) % 8; Snd.play('flip'); settle(p); }
+
+cv.addEventListener('pointerdown', e => {
+  if (won || e.button > 0) return;
+  const [x, y] = pos(e), p = pick(x, y);
+  sel = p;
+  if (p) {
+    pieces.splice(pieces.indexOf(p), 1); pieces.push(p);
+    drag = { dx:x - p.x, dy:y - p.y, sx:x, sy:y, moved:false, t:performance.now() };
+    cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; Snd.play('pick');
+  }
+  draw();
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag || !sel) return;
+  const [x, y] = pos(e);
+  if (Math.hypot(x - drag.sx, y - drag.sy) > 6) drag.moved = true;
+  if (drag.moved) { sel.x = x - drag.dx; sel.y = y - drag.dy; draw(); }
+});
+function endDrag() {
+  if (!drag || !sel) { drag = null; return; }
+  const tap = !drag.moved && performance.now() - drag.t < 400;
+  drag = null; cv.style.cursor = 'grab';
+  if (tap) rotate(sel, 1); else settle(sel, true);
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('contextmenu', e => { e.preventDefault(); const [x, y] = pos(e), p = pick(x, y); if (p) { sel = p; flip(p); } });
+cv.addEventListener('wheel', e => {
+  const [x, y] = pos(e), p = pick(x, y) || sel; if (!p) return;
+  e.preventDefault(); sel = p; rotate(p, e.deltaY > 0 ? 1 : -1);
+}, { passive:false });
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'q') rotate(sel, -1); else if (k === 'e' || k === 'r') rotate(sel, 1); else if (k === 'f') flip(sel);
+});
+
+function hint() {
+  if (won) return;
+  const used = new Set();
+  let pickT = null;
+  for (const s of target) {
+    const c = centroid(s.pts);
+    const m = pieces.find(p => !used.has(p) && p.type === s.t && Math.hypot(p.x - c[0], p.y - c[1]) < 8);
+    if (m) used.add(m); else if (!pickT) pickT = s;
+  }
+  if (!pickT) return;
+  const free = pieces.find(p => !used.has(p) && p.type === pickT.t);
+  hints++; document.getElementById('hints').textContent = hints; Snd.play('hint');
+  const h = hintShow = { pts:pickT.pts, color:free ? free.color : '#fff' };
+  draw();
+  setTimeout(() => { if (hintShow === h) { hintShow = null; draw(); } }, 3000);
+}
+
+function buildMenu() {
+  const g = document.getElementById('grid'); g.innerHTML = '';
+  LEVELS.forEach((L, i) => {
+    const b = document.createElement('button'); b.className = 'lv' + (i === cur ? ' cur' : '');
+    const c = document.createElement('canvas'); c.width = 180; c.height = 140;
+    const x = c.getContext('2d');
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const s of L.p) for (const [px, py] of s.pts) { x0 = Math.min(x0,px); x1 = Math.max(x1,px); y0 = Math.min(y0,py); y1 = Math.max(y1,py); }
+    const k = Math.min(150/(x1-x0), 115/(y1-y0));
+    x.fillStyle = x.strokeStyle = '#3a4258'; x.lineWidth = 1.5;
+    for (const s of L.p) { path(x, s.pts.map(([px, py]) => [90 + (px-(x0+x1)/2)*k, 70 + (py-(y0+y1)/2)*k])); x.fill(); x.stroke(); }
+    const st = save[i] ? '★'.repeat(save[i].stars) : '';
+    const name = document.createElement('div'); name.textContent = (i+1) + '. ' + L.name;
+    const stars = document.createElement('div'); stars.className = 'st'; stars.textContent = st;
+    b.append(c, name, stars);
+    b.onclick = () => { document.getElementById('menu').classList.remove('show'); loadLevel(i); };
+    g.appendChild(b);
+  });
+}
+function openMenu() { buildMenu(); document.getElementById('win').classList.remove('show'); document.getElementById('menu').classList.add('show'); }
+
+const $ = id => document.getElementById(id);
+$('bL').onclick = () => rotate(sel, -1);
+$('bR').onclick = () => rotate(sel, 1);
+$('bF').onclick = () => flip(sel);
+$('bH').onclick = hint;
+$('bReset').onclick = () => loadLevel(cur);
+$('bPrev').onclick = () => loadLevel(cur - 1);
+$('bNext').onclick = () => loadLevel(cur + 1);
+$('bMenu').onclick = openMenu;
+$('bClose').onclick = () => $('menu').classList.remove('show');
+$('wAgain').onclick = () => loadLevel(cur);
+$('wMenu').onclick = openMenu;
+$('wNext').onclick = () => loadLevel(cur + 1);
+function labels() { $('bMusic').textContent = '🎵 音樂：' + (Snd.musicOn ? '開' : '關'); $('bSfx').textContent = '🔊 音效：' + (Snd.sfxOn ? '開' : '關'); }
+$('bMusic').onclick = () => { Snd.toggleMusic(); labels(); };
+$('bSfx').onclick = () => { Snd.toggleSfx(); labels(); };
+labels();
+for (const id of ['bReset','bPrev','bNext','bMenu','bClose','wAgain','wMenu','wNext','bMusic','bSfx'])
+  $(id).addEventListener('click', () => Snd.play('ui'));
+
+// 除錯用：在主控台輸入 tangramDebug.solve() 直接擺出解答
+window.tangramDebug = { solve() {
+  const used = new Set();
+  for (const s of target) {
+    const p = pieces.find(q => !used.has(q) && q.type === s.t); used.add(p);
+    const o = orientFor(s.t, s.pts.map(v => [v[0]/U, v[1]/U]));
+    p.rot = o.r; p.flip = o.f; p.x = o.c[0]*U; p.y = o.c[1]*U;
+  }
+  draw(); checkWin(); return won;
+}, area() { let n = 0; const a = rasterize(target.map(s => s.pts)); for (let i = 3; i < a.length; i += 4) if (a[i] > 127) n++; return n / (8*U*U); },
+  level:i => loadLevel(i), state:() => ({ cur, won, n:LEVELS.length }) };
+
+addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 200));
+LY = pickLayout(); W = LY.W; H = LY.H; BX = LY.BX; BY = LY.BY; mask.width = W; mask.height = H;
+loadLevel(0); resize();
+</script>
+</body>
+</html>
