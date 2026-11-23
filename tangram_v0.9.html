@@ -88,11 +88,40 @@
   body.gpu #gpuBg, body.gpu #gpuFx { display:block; }
   body.gpu { background:transparent; }
   body.gpu .stat { background:rgba(42,51,71,.82); }
+  /* v0.9 首頁：背景是自動拼圖的廣告影片 */
+  body.promo #leftP, body.promo #rightP, body.promo .bar, body.promo .tip { visibility:hidden; }
+  #tgPromo { position:fixed; inset:0; z-index:15; display:none; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(14,18,28,.88) 0%, rgba(14,18,28,0) 26%, rgba(14,18,28,0) 70%, rgba(14,18,28,.9) 100%); }
+  body.promo #tgPromo { display:flex; }
+  #tgLogo { text-align:center; }
+  #tgLogo .w { display:inline-flex; gap:10px; font-family:"Noto Serif TC","Songti TC","PMingLiU",serif; font-weight:900;
+    font-size:clamp(40px,9vmin,76px); letter-spacing:4px; }
+  #tgLogo .w span { display:inline-block; color:#f3ead7; text-shadow:0 4px 0 var(--c), 0 7px 14px rgba(0,0,0,.55); animation:tgbob 2.8s ease-in-out infinite; }
+  @keyframes tgbob { 0%,100% { transform:translateY(0) rotate(0); } 35% { transform:translateY(-8px) rotate(-5deg); } 65% { transform:translateY(0) rotate(3deg); } }
+  #tgLogo .s { display:inline-block; margin-top:4px; color:var(--accent); font-size:clamp(12px,2.8vmin,15px); letter-spacing:3px; background:rgba(20,26,40,.85); border-radius:999px; padding:3px 14px; }
+  #tgCap { min-height:38px; margin-top:8px; text-align:center; }
+  #tgCap .pill { display:inline-block; background:rgba(42,51,71,.92); border:2px solid var(--accent); color:var(--ink); font-weight:bold;
+    font-size:clamp(14px,3vmin,16px); border-radius:999px; padding:6px 16px; box-shadow:0 4px 12px rgba(0,0,0,.45); }
+  #tgCap .pill span { display:inline-block; opacity:0; animation:tgIn .4s cubic-bezier(.3,1.8,.5,1) forwards; }
+  @keyframes tgIn { 0% { opacity:0; transform:translateY(12px) scale(.4); } 100% { opacity:1; transform:none; } }
+  #tgCard { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  #tgCard .row2 { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  #tgStart { font-size:20px; padding:12px 40px; animation:tgpulse 1.6s ease-in-out infinite; }
+  @keyframes tgpulse { 50% { transform:scale(1.05); } }
+  #tgCard .ver { font-size:11px; color:var(--muted); }
 </style>
 </head>
 <body>
 <canvas id="gpuBg"></canvas>
 <canvas id="gpuFx"></canvas>
+<div id="tgPromo">
+  <div><div id="tgLogo"><div class="w"><span style="--c:#e4572e">七</span><span style="--c:#2e86ab;animation-delay:.18s">巧</span><span style="--c:#76b041;animation-delay:.36s">板</span></div>
+    <div class="s">TANGRAM ‧ 七塊板，拼出萬千形狀</div></div>
+  <div id="tgCap"></div></div>
+  <div id="tgCard"><button class="primary" id="tgStart">▶ 開始遊戲</button>
+    <div class="row2"><button id="tgMenu">☰ 選關</button></div><div class="ver">v0.9</div></div>
+</div>
 <div id="main">
   <div class="side" id="leftP">
     <div class="grp" id="navG">
@@ -120,8 +149,9 @@
   <button id="bH">💡 提示</button>
   <button id="bReset">↺ 重來</button>
   <button id="bMenu">☰ 選關</button>
+  <button id="bHome">🏠 首頁</button>
 </div>
-<div class="tip">v0.8 WebGPU 特效｜拖曳移動｜點一下板塊＝右轉 45°｜滾輪旋轉｜右鍵或「翻面」＝翻轉（平行四邊形會用到）｜鍵盤 Q/E 旋轉、F 翻面</div>
+<div class="tip">v0.9 首頁自動示範｜拖曳移動｜點一下板塊＝右轉 45°｜滾輪旋轉｜右鍵或「翻面」＝翻轉（平行四邊形會用到）｜鍵盤 Q/E 旋轉、F 翻面</div>
 
 <div class="overlay" id="menu"><div class="dialog">
   <h2>選擇關卡</h2>
@@ -968,8 +998,64 @@ window.tangramDebug = { solve() {
 
 addEventListener('resize', resize);
 addEventListener('orientationchange', () => setTimeout(resize, 200));
+// ---------- v0.9 首頁廣告影片：自動把七塊板飛進剪影，拼好就放煙火 ----------
+// 用自己的 requestAnimationFrame 補間，沒有 GSAP 也能動
+let demo = false, demoId = 0, demoLv = 0, capT = null, capI = 0;
+const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+function tween(ms, fn, id) { return new Promise(res => { const t0 = performance.now();
+  (function f(now) { if (id !== demoId) return res(false); const k = Math.min(1, (now - t0) / ms); fn(k); draw(); if (k < 1) requestAnimationFrame(f); else res(true); })(t0); }); }
+const wait = (ms, id) => new Promise(r => setTimeout(() => r(id === demoId), ms));
+const CAPS = () => ['拖曳、旋轉、翻面，拼出黑色剪影！', '七塊板：兩大、一中、兩小三角形，加上正方形和平行四邊形', LEVELS.length + ' 個剪影關卡，看你能拿幾顆星 ★★★'];
+function cap() { const t = CAPS()[capI++ % 3]; $('tgCap').innerHTML = '<span class="pill">' + [...t].map((c, i) => `<span style="animation-delay:${i*.03}s">${c}</span>`).join('') + '</span>'; }
+async function demoRun(id) {
+  while (id === demoId) {
+    loadLevel(demoLv++ % LEVELS.length); won = true;   // won=true：示範時不計時、不能操作
+    if (!await wait(900, id)) return;
+    const order = target.map((s, k) => k).sort((a, b) => 'LMQSP'.indexOf(target[a].t) - 'LMQSP'.indexOf(target[b].t));
+    const used = new Set();
+    for (const k of order) {
+      const s = target[k], p = pieces.find(q => !used.has(q) && q.type === s.t); used.add(p);
+      const o = orientFor(s.t, s.pts.map(v => [v[0]/U, v[1]/U]));
+      pieces.splice(pieces.indexOf(p), 1); pieces.push(p);
+      const x0 = p.x, y0 = p.y, x1 = o.c[0]*U, y1 = o.c[1]*U, fl = p.flip !== o.f;
+      let ra0 = ((p.rot - o.r) % 8 + 8) % 8; if (ra0 > 4) ra0 -= 8; ra0 *= Math.PI / 4;
+      p.rot = o.r; p.flip = o.f;
+      if (!await tween(700, k => { const e = ease(k); p.x = x0 + (x1 - x0) * e; p.y = y0 + (y1 - y0) * e;
+        p.oy = -46 * Math.sin(Math.PI * k); p.ox = 0; p.ra = fl ? 0 : ra0 * (1 - e); p.wsx = fl ? (2*e - 1 || .01) : 1;
+        p.lift = Math.sin(Math.PI * k); p.sc = 1 + .08 * Math.sin(Math.PI * k);
+        if (GPU.on && k < .95) GPU.trail(p.x, p.y + p.oy, p.color); }, id)) return;
+      p.oy = 0; p.ra = 0; p.wsx = 1; p.lift = 0;
+      if (GPU.on) GPU.burst(verts(p), p.color);
+      if (!await tween(260, k => { p.sc = 1 + .1 * Math.sin(Math.PI * k) * (1 - k); }, id)) return;
+      p.sc = 1;
+      if (!await wait(120, id)) return;
+    }
+    if (GPU.on) GPU.win(pieces.map(p => ({ v:verts(p), color:p.color })), BX, BY);
+    $('tgCap').innerHTML = `<span class="pill">✨ 完成「${LEVELS[cur].name}」！ ★★★</span>`;
+    if (!await tween(1400, k => { VIS.glow = Math.sin(Math.PI * k); pieces.forEach((p, i) => { const q = Math.max(0, Math.min(1, k * 2 - i * .1)); p.sc = 1 + .12 * Math.sin(Math.PI * q); }); }, id)) return;
+    VIS.glow = 0; pieces.forEach(p => p.sc = 1);
+    if (!await wait(1300, id)) return;
+    cap();
+  }
+}
+function showPromo() {
+  $('menu').classList.remove('show'); $('win').classList.remove('show');
+  document.body.classList.add('promo'); demo = true; demoId++; sel = null; drag = null;
+  capI = 0; cap(); clearInterval(capT); capT = setInterval(() => { if (demo) cap(); }, 5200);
+  demoRun(demoId);
+}
+function leavePromo() {
+  demo = false; demoId++; clearInterval(capT); VIS.glow = 0;
+  document.body.classList.remove('promo');
+}
+function firstUnsolved() { for (let i = 0; i < LEVELS.length; i++) if (!save[i]) return i; return 0; }
+$('tgStart').onclick = () => { Snd.play('ui'); leavePromo(); loadLevel(firstUnsolved()); };
+$('tgMenu').onclick = () => { Snd.play('ui'); leavePromo(); loadLevel(firstUnsolved()); openMenu(); };
+$('bHome').onclick = () => { Snd.play('ui'); showPromo(); };
+$('tgStart').textContent = Object.keys(save).some(k => /^\d+$/.test(k)) ? '▶ 繼續挑戰' : '▶ 開始遊戲';
+
 LY = pickLayout(); W = LY.W; H = LY.H; BX = LY.BX; BY = LY.BY; mask.width = W; mask.height = H;
-loadLevel(0); resize();
+loadLevel(0); resize(); showPromo();
 </script>
 </body>
 </html>
