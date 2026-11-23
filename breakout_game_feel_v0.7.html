@@ -59,6 +59,26 @@
   .mini button.on { background:var(--gold); border-color:var(--gold); color:#2b1d00; font-weight:800; }
   .mini button { border:1px solid #2b3d7d; background:transparent; color:var(--muted); border-radius:999px; padding:6px 14px; font-size:.78rem; cursor:pointer; font-family:inherit; }
   button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  /* v0.7 首頁：背景是電腦自動打方塊、特效一個一個打開的廣告影片 */
+  body.promo .head, body.promo .hud, body.promo #pw, body.promo .mini { visibility:hidden; }
+  #bkPromo { position:fixed; inset:0; z-index:8; display:none; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 8px) 12px calc(env(safe-area-inset-bottom,0px) + 10px); pointer-events:none;
+    background:linear-gradient(180deg, rgba(10,18,48,.95) 0%, rgba(10,18,48,0) 20%, rgba(10,18,48,0) 84%, rgba(10,18,48,.9) 100%); }
+  body.promo #bkPromo { display:flex; }
+  #bkTop { text-align:center; }
+  #bkLogo { font-size:clamp(2.2rem,10vw,3.6rem); font-weight:900; letter-spacing:.12em; line-height:1.05; white-space:nowrap; }
+  #bkLogo span { display:inline-block; color:var(--c); text-shadow:0 0 14px var(--c), 0 4px 0 rgba(0,0,0,.5); animation:bkHop 1.8s ease-in-out infinite; }
+  @keyframes bkHop { 0%,100% { transform:translateY(0) scale(1,1); } 20% { transform:translateY(-10px) scale(.92,1.1); } 34% { transform:translateY(0) scale(1.14,.86); } 46% { transform:scale(1,1); } }
+  #bkSub { color:var(--gold); font-size:.78rem; font-weight:800; letter-spacing:.3em; margin-top:2px; }
+  #bkCap { min-height:34px; margin-top:6px; }
+  #bkCap .pill { display:inline-block; background:#141c44; border:2px solid var(--gold); color:var(--fg); font-weight:800; font-size:.92rem; border-radius:999px; padding:5px 14px; box-shadow:0 0 16px rgba(255,197,66,.35); }
+  #bkCap .pill b { color:var(--gold); }
+  #bkCap .pill span { display:inline-block; opacity:0; animation:bkIn .35s cubic-bezier(.3,1.8,.5,1) forwards; }
+  @keyframes bkIn { 0% { opacity:0; transform:translateY(10px) scale(.4); } 100% { opacity:1; transform:none; } }
+  #bkBtns { display:flex; gap:8px; align-items:center; pointer-events:auto; }
+  #bkBtns button { border:1px solid #2b3d7d; background:rgba(20,28,68,.92); color:var(--fg); border-radius:999px; padding:9px 14px; font-size:.88rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  #bkBtns #bkStart { background:var(--gold); border-color:var(--gold); color:#2b1d00; font-size:1.1rem; font-weight:900; padding:11px 24px; animation:bkPulse 1.4s ease-in-out infinite; }
+  @keyframes bkPulse { 50% { transform:scale(1.06); box-shadow:0 0 22px rgba(255,197,66,.6); } }
 </style>
 </head>
 <body>
@@ -68,13 +88,18 @@
   <div id="pw"></div>
   <div id="stage"><canvas id="cv"></canvas>
     <div id="ov"><div><h2 id="ovt"></h2><p id="ovp"></p><div class="ob"><button id="ovb">再玩一次</button><button id="ovl" class="sec">選擇關卡</button></div></div></div></div>
-  <div class="mini"><button id="pausebtn">⏸ 暫停</button><button id="openlvl">☰ 選關</button><button id="openset">⚙ 特效<span class="lg">設定</span></button><button id="musbtn">🎵 音樂</button><button id="restart">重新開始</button></div>
+  <div class="mini"><button id="pausebtn">⏸ 暫停</button><button id="openlvl">☰ 選關</button><button id="openset">⚙ 特效<span class="lg">設定</span></button><button id="musbtn">🎵 音樂</button><button id="restart">重新開始</button><button id="homebtn">🏠</button></div>
+</div>
+<div id="bkPromo">
+  <div id="bkTop"><div id="bkLogo"><span style="--c:#ff6f61">打</span><span style="--c:#ffd166;animation-delay:.12s">方</span><span style="--c:#4da6ff;animation-delay:.24s">塊</span></div>
+    <div id="bkSub">GAME FEEL ・ v0.7</div><div id="bkCap"></div></div>
+  <div id="bkBtns"><button id="bkLevels">☰ 選關</button><button id="bkStart">▶ 開始遊戲</button><button id="bkSet">⚙ 特效</button></div>
 </div>
 <div id="set" role="dialog" aria-label="特效設定"><div class="setin">
   <div class="sethead"><h2>⚙ 特效設定</h2><span id="setj">JUICE 10/10</span></div>
   <p class="setnote">點一下開關各種手感特效。設定時遊戲會暫停,回到遊戲後就能比較開與關的差別。</p>
   <div id="fxgrid"></div>
-  <div class="musrow" id="musrow" role="button" tabindex="0"><span><b>🎵 背景音樂</b><small>復古街機風電子樂,球速升級時節奏會跟著變快</small></span><span class="sw"></span></div>
+  <div class="musrow" id="musrow" role="button" tabindex="0"><span><b>🎵 背景音樂</b><small>Drum &amp; Bass 碎拍電子樂,球速升級時節奏會跟著變快</small></span><span class="sw"></span></div>
   <div class="setbtns"><button id="allon">全部開啟</button><button id="alloff">全部關閉</button><button id="closeset" class="main">回到遊戲 ▶</button></div>
 </div></div>
 <div id="lvl" role="dialog" aria-label="選擇關卡"><div class="setin">
@@ -136,22 +161,22 @@ const juice = () => FXLIST.filter(([k]) => FX[k]).length;
 function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
 // ---------- 聲音 ----------
-let actx = null;
+let actx = null, demo = false;
 function ac() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; } catch (e) { return null; } }
 function tone(f, d, type, v, when, slide, force) {
-  if (!FX.sound && !force) return; const c = ac(); if (!c) return;
+  if ((!FX.sound && !force) || demo) return; const c = ac(); if (!c) return;
   try { const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
     g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v || .1, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + .02); } catch (e) {}
 }
 // 金屬聲:用不成倍數的泛音(像金屬棒/鐘)加上一點敲擊雜音,高頻泛音衰減得比較快
 let noiseBuf = null;
 function ring(f, d, v, when) {
-  if (!FX.sound) return; const c = ac(); if (!c) return;
+  if (!FX.sound || demo) return; const c = ac(); if (!c) return;
   try { const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(f, t);
     g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .003); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + .02); } catch (e) {}
 }
 function noise(d, v, when, fc, q) {
-  if (!FX.sound) return; const c = ac(); if (!c) return;
+  if (!FX.sound || demo) return; const c = ac(); if (!c) return;
   try {
     if (!noiseBuf) { noiseBuf = c.createBuffer(1, Math.floor(c.sampleRate * .5), c.sampleRate); const a = noiseBuf.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; }
     const t = c.currentTime + (when || 0), s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = fc; bp.Q.value = q;
@@ -182,48 +207,58 @@ const sfx = {
   bad: () => { tone(300, .18, 'sawtooth', .08, 0, 120); }
 };
 
-// ---------- 背景音樂:復古街機晶片音樂(E 多利安調,方波主旋律 + 三角波貝斯 + 噪音鼓) ----------
-// 和其它遊戲不同:不是魔法奇幻或賽車風,而是 8-bit 街機感;球速每升一級,節拍就快一點,第 4 級起加入琶音、鼓也更密
-const MUS = { on: true, bus: null, timer: null, step: 0, next: 0, pulse: null, pulse8: null };
+// ---------- 背景音樂:Drum & Bass(F 小調,碎拍鼓組 + Reese 低音 + FM 鐘聲和弦) ----------
+// 和其它遊戲不同:不用方波/晶片音色,改用 FM 合成的鐘聲與兩把走音鋸齒波疊成的 Reese 低音;球速每升一級節拍就快一點,第 4 級起加入高八度 FM 琶音
+const MUS = { on: true, bus: null, timer: null, step: 0, next: 0 };
 try { MUS.on = localStorage.getItem('gamefeel_music') !== '0'; } catch (e) {}
 const mhz = m => 440 * Math.pow(2, (m - 69) / 12);
-const M_CH = [[0, [0, 3, 7, 10]], [5, [5, 9, 12, 16]], [0, [0, 3, 7, 10]], [5, [5, 9, 12, 16]], [-4, [-4, 0, 3, 7]], [-2, [-2, 2, 5, 9]], [7, [7, 10, 14, 17]], [-2, [-2, 2, 5, 9]]];
-const M_MEL = [
-  [7, null, 10, 12, 14, 12, 10, 7], [9, null, 9, 12, 9, 7, 5, null], [7, 10, 12, 14, 15, 14, 12, 10], [12, null, 9, null, 7, 9, 12, 14],
-  [15, null, 14, 12, 15, null, 19, null], [17, null, 14, 10, 14, null, 17, 19], [19, 17, 14, 10, 7, 10, 14, 17], [21, null, 19, null, 17, 14, 12, 10]];
-const M_BASS = [0, null, 12, 0, null, 0, 12, 7];
-function pulseWave(c, duty) { const N = 40, re = new Float32Array(N), im = new Float32Array(N); for (let n = 1; n < N; n++) re[n] = 2 * Math.sin(n * Math.PI * duty) / (n * Math.PI); return c.createPeriodicWave(re, im); }
-function mv(wave, f, t, d, v) {
-  const c = actx, o = c.createOscillator(), g = c.createGain(); if (typeof wave === 'string') o.type = wave; else o.setPeriodicWave(wave);
-  o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .005); g.gain.setValueAtTime(v, t + d * .6); g.gain.exponentialRampToValueAtTime(.0001, t + d);
-  o.connect(g); g.connect(MUS.bus); o.start(t); o.stop(t + d + .03);
+// 每個和弦兩小節:Fm9 → D♭maj7 → E♭6 → C7♭9(根音 MIDI、和弦音)
+const M_CH = [[41, [65, 68, 72, 79]], [37, [65, 68, 72, 77]], [39, [67, 70, 74, 79]], [36, [64, 67, 70, 73]]];
+const M_BELL = [[84, null, 80, null, 79, null, null, 77], [80, null, null, 79, null, 77, null, null], [82, null, 79, null, 77, null, 75, null], [76, null, null, 79, null, null, 82, null]];
+function fmBell(f, t, d, v, idx) { // FM 合成:調變器 3.5 倍頻,打擊瞬間亮、隨後變圓
+  const c = actx, car = c.createOscillator(), mod = c.createOscillator(), mg = c.createGain(), g = c.createGain();
+  car.frequency.value = f; mod.frequency.value = f * 3.5; mg.gain.setValueAtTime(f * (idx || 2.4), t); mg.gain.exponentialRampToValueAtTime(f * .05, t + d * .7);
+  mod.connect(mg); mg.connect(car.frequency); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  car.connect(g); g.connect(MUS.bus); car.start(t); mod.start(t); car.stop(t + d + .03); mod.stop(t + d + .03);
 }
-function mnoise(t, d, v, fc, type) {
+function reese(f, t, d, v) { // 兩把走音鋸齒波 + 低通,厚厚的「嗡」低音
+  const c = actx, lp = c.createBiquadFilter(), g = c.createGain(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(520, t); lp.frequency.linearRampToValueAtTime(260, t + d); lp.Q.value = 3;
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .02); g.gain.setValueAtTime(v, t + d * .8); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  [-14, 14].forEach(dt => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = dt; o.connect(lp); o.start(t); o.stop(t + d + .03); });
+  const sub = c.createOscillator(); sub.frequency.value = f / 2; sub.connect(g); sub.start(t); sub.stop(t + d + .03); lp.connect(g); g.connect(MUS.bus);
+}
+function mnoise(t, d, v, fc, type, q) {
   const c = actx; if (!noiseBuf) { noiseBuf = c.createBuffer(1, Math.floor(c.sampleRate * .5), c.sampleRate); const a = noiseBuf.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; }
-  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = noiseBuf; f.type = type || 'highpass'; f.frequency.value = fc;
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = noiseBuf; f.type = type || 'highpass'; f.frequency.value = fc; if (q) f.Q.value = q;
   g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); s.connect(f); f.connect(g); g.connect(MUS.bus); s.start(t, Math.random() * .3); s.stop(t + d + .02);
 }
-function mkick(t) { const c = actx, o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + .12); g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.0001, t + .16); o.connect(g); g.connect(MUS.bus); o.start(t); o.stop(t + .18); }
+function mkick(t) { const c = actx, o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(48, t + .09); g.gain.setValueAtTime(.6, t); g.gain.exponentialRampToValueAtTime(.0001, t + .2); o.connect(g); g.connect(MUS.bus); o.start(t); o.stop(t + .22); }
+function msnare(t, v) { const c = actx, o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(160, t + .06); g.gain.setValueAtTime(v * .9, t); g.gain.exponentialRampToValueAtTime(.0001, t + .09); o.connect(g); g.connect(MUS.bus); o.start(t); o.stop(t + .1); mnoise(t, .14, v, 2400, 'bandpass', .7); }
 function musicTick() {
   const c = actx; if (!c || !MUS.bus) return;
-  const lvUp = G && G.balls ? speedUps() : 0, bpm = 132 + Math.min(lvUp, 10) * 2.5, s16 = 60 / bpm / 4, hot = lvUp >= 4;
+  const lvUp = G && G.balls ? speedUps() : 0, bpm = 164 + Math.min(lvUp, 10) * 2, s16 = 60 / bpm / 4, hot = lvUp >= 4;
   if (MUS.next < c.currentTime - .5) MUS.next = c.currentTime + .05;
   while (MUS.next < c.currentTime + .15) {
-    const t = MUS.next, st = MUS.step % 128, bar = Math.floor(st / 16), i16 = st % 16, E = 64, root = M_CH[bar][0], chord = M_CH[bar][1];
-    if (i16 % 2 === 0) { const n = M_MEL[bar][i16 / 2]; if (n !== null) mv(MUS.pulse, mhz(E + n), t, s16 * 1.8, .05); }
-    if (i16 % 2 === 0) { const b = M_BASS[i16 / 2]; if (b !== null) mv('triangle', mhz(40 + root + b), t, s16 * 1.7, .2); }
-    if (hot) mv(MUS.pulse8, mhz(E + 12 + chord[i16 % 4]), t, s16 * .9, .022);
-    if (i16 === 0 || i16 === 6 || i16 === 8 || (hot && i16 === 14)) mkick(t);
-    if (i16 === 4 || i16 === 12) mnoise(t, .12, .16, 1800, 'bandpass');
-    if (i16 % 2 === 0 || hot) mnoise(t, .035, i16 % 4 === 2 ? .07 : .04, 7000);
-    if (st % 64 === 0) mnoise(t, .6, .05, 5000);
+    const t = MUS.next, st = MUS.step % 128, bar = Math.floor(st / 16), i16 = st % 16, ch = M_CH[Math.floor(bar / 2)], fill = bar % 4 === 3;
+    // 碎拍鼓:1 與 11 格大鼓、5 與 13 格小鼓,中間穿插輕的鬼音;每 4 小節最後一小節換成過門
+    if (i16 === 0 || i16 === 10 || (fill && i16 === 3)) mkick(t);
+    if (i16 === 4 || i16 === 12) msnare(t, .2);
+    if (i16 === 7 || i16 === 9 || (fill && (i16 === 14 || i16 === 15))) msnare(t, fill ? .12 : .05);
+    mnoise(t, i16 % 4 === 2 ? .05 : .025, i16 % 2 ? .02 : .045, 8000);
+    if (st % 64 === 0) mnoise(t, .9, .06, 6000);
+    // Reese 低音:每小節 3 下切分
+    if (i16 === 0) reese(mhz(ch[0]), t, s16 * 5.5, .16); if (i16 === 6) reese(mhz(ch[0]), t, s16 * 3.5, .13); if (i16 === 10) reese(mhz(ch[0] + (bar % 2 ? 7 : 12)), t, s16 * 5.5, .14);
+    // FM 鐘聲:和弦在 1、7 格;第二小節加旋律
+    if (bar % 2 === 0 && (i16 === 0 || i16 === 6)) ch[1].forEach((n, k) => fmBell(mhz(n), t + k * .006, .7, .028, 1.6));
+    if (bar % 2 === 1 && i16 % 2 === 0) { const n = M_BELL[Math.floor(bar / 2)][i16 / 2]; if (n) fmBell(mhz(n), t, .5, .05, 2.6); }
+    if (hot && i16 % 2 === 1) fmBell(mhz(ch[1][(i16 >> 1) % 4] + 12), t, .18, .016, 3);
     MUS.next += s16; MUS.step++;
   }
 }
 function musicStart() {
   if (!MUS.on || MUS.timer || (typeof userPause !== 'undefined' && userPause)) return; const c = ac(); if (!c) return;
   try {
-    if (!MUS.bus) { MUS.bus = c.createGain(); MUS.bus.gain.value = 0; MUS.bus.connect(c.destination); MUS.pulse = pulseWave(c, .25); MUS.pulse8 = pulseWave(c, .125); }
+    if (!MUS.bus) { MUS.bus = c.createGain(); MUS.bus.gain.value = 0; MUS.bus.connect(c.destination); }
     MUS.bus.gain.cancelScheduledValues(c.currentTime); MUS.bus.gain.setTargetAtTime(.32, c.currentTime, .3);
     MUS.step = 0; MUS.next = c.currentTime + .08; MUS.timer = setInterval(musicTick, 25); musicTick();
   } catch (e) {}
@@ -331,13 +366,14 @@ function step(dt) {
     if (it.y > PAD_Y - PAD_H && it.y < PAD_Y + PAD_H + 10 && Math.abs(it.x - P.x) < P.w / 2 + 22) { applyItem(it.type); return false; }
     return it.y < H + 24;
   });
-  if (G.state === 'play' && G.bricks.every(b => !b.alive)) { G.state = 'clear'; G.clearT = 0; sfx.clear(); cleared[G.level + 1] = Math.max(cleared[G.level + 1] || 0, G.score); saveCleared(); pop(W / 2, H * .5, 'LEVEL ' + (G.level + 1) + ' CLEAR', '#5bd69a', 34); }
+  if (G.state === 'play' && G.bricks.every(b => !b.alive)) { G.state = 'clear'; G.clearT = 0; sfx.clear(); if (!demo) { cleared[G.level + 1] = Math.max(cleared[G.level + 1] || 0, G.score); saveCleared(); } pop(W / 2, H * .5, 'LEVEL ' + (G.level + 1) + ' CLEAR', '#5bd69a', 34); }
 }
 function allClear() {
   G.state = 'over'; if (G.score > best) { best = G.score; try { localStorage.setItem('gamefeel_best', best); } catch (e) {} }
   $('ovt').textContent = '🏆 全部 50 關破關!'; $('ovp').innerHTML = `分數 <b>${G.score}</b> ・ 最高 <b>${best}</b><br>最高連擊 ×${G.maxCombo}`; $('ov').style.display = 'flex';
 }
 function loseLife() {
+  if (demo) { G.combo = 0; G.hits = 0; addShake(10); G.items = []; G.state = 'ready'; G.balls = [mkBall(G.pad.x, PAD_Y - PAD_H / 2 - BR - 1)]; return; }
   G.lives--; G.combo = 0; G.hits = 0; addShake(10); sfx.lose(); G.items = []; G.eff = { wide: 0, narrow: 0, slow: 0, fast: 0, pierce: 0 };
   if (G.lives <= 0) { G.state = 'over'; if (G.score > best) { best = G.score; try { localStorage.setItem('gamefeel_best', best); } catch (e) {} } $('ovt').textContent = 'GAME OVER'; $('ovp').innerHTML = `分數 <b>${G.score}</b> ・ 最高 <b>${best}</b><br>最高連擊 ×${G.maxCombo} ・ 到達第 ${G.level + 1} 關`; $('ov').style.display = 'flex'; }
   else { G.state = 'ready'; G.balls = [mkBall(G.pad.x, PAD_Y - PAD_H / 2 - BR - 1)]; }
@@ -349,12 +385,13 @@ function update(dt) {
   G.t += dt;
   for (const k in G.eff) if (G.eff[k] > 0) G.eff[k] = Math.max(0, G.eff[k] - dt);
   P.w = FX.tween ? P.w + (padTarget() - P.w) * Math.min(1, dt * 9) : padTarget();
+  if (demo) demoAI(dt);
   if (keys.ArrowLeft || keys.a) target -= 520 * dt; if (keys.ArrowRight || keys.d) target += 520 * dt;
   target = Math.max(P.w / 2, Math.min(W - P.w / 2, target));
   P.x = FX.tween ? P.x + (target - P.x) * Math.min(1, dt * 20) : target;
   P.sq = Math.max(0, P.sq - dt * 6); P.fl = Math.max(0, P.fl - dt); G.balls.forEach(B => B.sq = Math.max(0, B.sq - dt * 7));
   step(dt);
-  if (G.state === 'clear') { G.clearT += dt; if (G.clearT > 1.5) { if (G.level + 1 >= LEVEL_COUNT) allClear(); else { G.level++; startLevel(); } } }
+  if (G.state === 'clear') { G.clearT += dt; if (G.clearT > 1.5) { if (demo) { demoNextLevel(); } else if (G.level + 1 >= LEVEL_COUNT) allClear(); else { G.level++; startLevel(); } } }
   for (const b of G.bricks) { if (b.appear < 1) b.appear += dt; if (b.dying >= 0 && b.dying < 1) b.dying += dt / .25; if (b.flash > 0) b.flash -= dt; if (b.wob > 0) b.wob = Math.max(0, b.wob - dt * 6); }
   for (const p of G.parts) { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 520 * dt; } G.parts = G.parts.filter(p => p.life < p.max);
   for (const p of G.pops) { p.life += dt; } G.pops = G.pops.filter(p => p.life < p.max);
@@ -451,7 +488,7 @@ function openLvl() {
 }
 function closeLvl() { if (!lvlOpen) return; lvlOpen = false; if (document.activeElement) document.activeElement.blur(); $('lvl').classList.remove('open'); last = performance.now(); }
 $('openlvl').onclick = openLvl; $('closelvl').onclick = closeLvl; $('ovl').onclick = openLvl;
-$('lvgrid').addEventListener('click', e => { const b = e.target.closest('.lv'); if (!b) return; ac(); musicStart(); closeLvl(); newGame(+b.dataset.lv); toast = { t: 0, title: '第 ' + (+b.dataset.lv + 1) + ' 關', sub: 'LEVEL ' + (+b.dataset.lv + 1) + ' / ' + LEVEL_COUNT }; });
+$('lvgrid').addEventListener('click', e => { const b = e.target.closest('.lv'); if (!b) return; if (demo) leavePromo(true); ac(); musicStart(); closeLvl(); newGame(+b.dataset.lv); toast = { t: 0, title: '第 ' + (+b.dataset.lv + 1) + ' 關', sub: 'LEVEL ' + (+b.dataset.lv + 1) + ' / ' + LEVEL_COUNT }; });
 function musUI() { $('musbtn').textContent = '🎵 音樂:' + (MUS.on ? '開' : '關'); $('musrow').classList.toggle('on', MUS.on); $('musrow').querySelector('.sw').textContent = MUS.on ? 'ON' : 'OFF'; }
 function toggleMusic() { setMusic(!MUS.on); musUI(); }
 $('musbtn').onclick = toggleMusic; $('musrow').onclick = toggleMusic; musUI();
@@ -462,12 +499,53 @@ $('alloff').onclick = () => { FXLIST.forEach(([k]) => FX[k] = false); saveFx(); 
 $('restart').onclick = () => { setPause(false); newGame(G.startLv); }; $('ovb').onclick = () => newGame(G.startLv);
 const setTarget = e => { const r = cv.getBoundingClientRect(); target = (e.clientX - r.left) / r.width * W; };
 addEventListener('pointerdown', () => musicStart(), true);
-cv.addEventListener('pointerdown', e => { if (userPause) { setPause(false); return; } ac(); setTarget(e); launch(); try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
-cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0 || e.pointerType === 'touch') setTarget(e); });
-addEventListener('keydown', e => { musicStart(); if (lvlOpen) { if (e.key === 'Escape') closeLvl(); return; } if (setOpen) { if (e.key === 'Escape') closeSet(); return; } if (e.key === 'Escape') { openSet(); return; } if (e.key === 'p' || e.key === 'P') { setPause(!userPause); return; } if (userPause) { if (e.code === 'Space') { e.preventDefault(); setPause(false); } return; } keys[e.key] = true; ac(); if (e.code === 'Space') { e.preventDefault(); launch(); } if (e.key.startsWith('Arrow')) e.preventDefault(); });
+cv.addEventListener('pointerdown', e => { if (demo) return; if (userPause) { setPause(false); return; } ac(); setTarget(e); launch(); try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
+cv.addEventListener('pointermove', e => { if (demo) return; if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0 || e.pointerType === 'touch') setTarget(e); });
+addEventListener('keydown', e => { musicStart(); if (demo && !lvlOpen && !setOpen) { if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); leavePromo(); } return; } if (lvlOpen) { if (e.key === 'Escape') closeLvl(); return; } if (setOpen) { if (e.key === 'Escape') closeSet(); return; } if (e.key === 'Escape') { openSet(); return; } if (e.key === 'p' || e.key === 'P') { setPause(!userPause); return; } if (userPause) { if (e.code === 'Space') { e.preventDefault(); setPause(false); } return; } keys[e.key] = true; ac(); if (e.code === 'Space') { e.preventDefault(); launch(); } if (e.key.startsWith('Arrow')) e.preventDefault(); });
 addEventListener('keyup', e => { keys[e.key] = false; });
 function loop(now) { requestAnimationFrame(loop); const dt = Math.min(1 / 30, (now - last) / 1000 || 0); last = now; if (!paused()) update(dt); draw(); }
-fit(); newGame(); hud(); requestAnimationFrame(loop); requestAnimationFrame(fit); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+// ---------- v0.7 首頁廣告影片:電腦自動打,手感特效一個一個打開 ----------
+let userFX = null, demoT = 0, demoStepI = -1, demoLvI = 0, aimOff = 0, readyT = 0;
+const DEMO_LV = [2, 9, 15, 24, 33, 41];
+const DEMO_SEQ = FXLIST.filter(([k]) => k !== 'sound');   // 示範時沒有聲音,所以「音效」這項不展示
+function bkCap(html) { const tmp = document.createElement('div'); tmp.innerHTML = html; let i = 0;
+  const wrap = n => { if (n.nodeType === 3) return [...n.textContent].map(ch => `<span style="animation-delay:${(i++) * .025}s">${ch === ' ' ? '&nbsp;' : ch}</span>`).join(''); return `<${n.tagName.toLowerCase()}>${[...n.childNodes].map(wrap).join('')}</${n.tagName.toLowerCase()}>`; };
+  $('bkCap').innerHTML = '<span class="pill">' + [...tmp.childNodes].map(wrap).join('') + '</span>'; }
+function demoNextLevel() { G.level = DEMO_LV[demoLvI++ % DEMO_LV.length]; startLevel(); G.lives = 3; readyT = 0; }
+function predictX(B) { const t = (PAD_Y - PAD_H / 2 - BR - B.y) / B.vy; let x = B.x + B.vx * t; const L = BR, R = W - BR, span = R - L; x = ((x - L) % (2 * span) + 2 * span) % (2 * span); return L + (x > span ? 2 * span - x : x); }
+function demoAI(dt) {
+  demoT += dt; readyT += dt;
+  // 特效時間表:先全關 3 秒,再每 1.7 秒開一個,全開後打 12 秒再重來
+  const want = demoT < 3 ? -1 : Math.min(DEMO_SEQ.length, Math.floor((demoT - 3) / 1.7));
+  if (want !== demoStepI) { demoStepI = want;
+    if (want < 0) { FXLIST.forEach(([k]) => FX[k] = false); bkCap('同一款遊戲,<b>沒有特效</b>…有點無聊?'); }
+    else if (want < DEMO_SEQ.length) { const [k, zh, en] = DEMO_SEQ[want]; FX[k] = true; bkCap(`+ <b>${zh}</b> ${en}`); }
+    else bkCap('<b>JUICE 全開!</b> 這就是「手感」'); }
+  if (demoT > 3 + DEMO_SEQ.length * 1.7 + 12) { demoT = 0; demoStepI = -2; demoNextLevel(); }
+  if (G.state === 'ready' && readyT > .8) { launch(); readyT = 0; }
+  if (G.state === 'play' && demoStepI >= 3 && G.balls.length < 4 && (G.multiT = (G.multiT || 0) + dt) > 4) { G.multiT = 0; applyItem('multi'); }
+  let best = null; for (const B of G.balls) if (B.vy > 0 && (!best || B.y > best.y)) best = B;
+  if (best) target = predictX(best) - aimOff; else target += (W / 2 - target) * Math.min(1, dt * 2);
+}
+function showPromo() {
+  if (!demo) { userFX = Object.assign({}, FX); }
+  demo = true; document.body.classList.add('promo'); setPause(false); keys = {};
+  FX = {}; FXLIST.forEach(([k]) => FX[k] = false); demoT = 0; demoStepI = -2;
+  newGame(DEMO_LV[0]); demoLvI = 1; readyT = 0; $('ov').style.display = 'none';
+}
+function leavePromo(keepLevel) {
+  if (!demo) return; demo = false; document.body.classList.remove('promo');
+  FX = Object.assign({}, userFX); FXLIST.forEach(([k]) => { if (typeof FX[k] !== 'boolean') FX[k] = true; }); hud();
+  ac(); musicStart(); if (!keepLevel) newGame(0);
+}
+$('bkStart').onclick = () => leavePromo();
+$('bkLevels').onclick = () => { leavePromo(); openLvl(); };
+$('bkSet').onclick = () => { leavePromo(); openSet(); };
+$('homebtn').onclick = () => { if (document.activeElement) document.activeElement.blur(); showPromo(); };
+// 球打到球拍時,換一個角度偏移,讓電腦打得有變化
+const _paddleSfx = sfx.paddle; sfx.paddle = () => { aimOff = (Math.random() * 2 - 1) * PAD_W * .32; _paddleSfx(); };
+
+fit(); showPromo(); hud(); requestAnimationFrame(loop); requestAnimationFrame(fit); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 </script>
 </body>
 </html>
