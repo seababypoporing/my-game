@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>益智停車場 v1.3</title>
+<title>益智停車場 v1.4</title>
 <style>
 :root{--bg1:#fff6dc;--bg2:#ffe3b0;--ink:#3b2a16;--green:#7ccf4a;--green2:#5bb230;--orange:#ff8a1f;}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--ink);
   background:radial-gradient(circle at 30% 10%,#fffdf3,var(--bg1) 40%,var(--bg2));overflow:hidden;touch-action:none}
-#app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(8px,env(safe-area-inset-top)) 10px 10px}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(max(8px,env(safe-area-inset-top)) + var(--sb,0px)) 10px 10px}
 h1{margin:4px 0 2px;font-size:clamp(26px,7vw,40px);letter-spacing:2px;font-weight:900;
   color:#2f8f1f;text-shadow:3px 3px 0 #fff,-2px -2px 0 #fff,2px -2px 0 #fff,-2px 2px 0 #fff,4px 5px 0 rgba(0,0,0,.15)}
 h1 span{color:var(--orange)}
@@ -18,7 +18,7 @@ h1 span{color:var(--orange)}
 .hud{display:flex;gap:8px;width:min(94vw,520px);justify-content:space-between;margin-bottom:8px}
 .pill{flex:1;background:#fff;border-radius:14px;padding:6px 4px;text-align:center;box-shadow:0 3px 0 rgba(0,0,0,.12);font-size:12px;color:#8a6d4b}
 .pill b{display:block;font-size:20px;color:var(--ink)}
-#boardWrap{position:relative;width:min(94vw,520px,calc(100vh - 260px));aspect-ratio:1}
+#boardWrap{position:relative;width:min(94vw,520px,calc(100vh - 260px - var(--sb,0px)));aspect-ratio:1}
 #frame{position:absolute;inset:0;border-radius:22px;background:var(--green);box-shadow:0 8px 0 var(--green2),0 14px 24px rgba(0,0,0,.2);overflow:hidden}
 #frame svg.deco{position:absolute;inset:0;width:100%;height:100%}
 #board{position:absolute;left:9%;top:9%;width:82%;height:82%;background:#d9dde2;border-radius:10px;
@@ -71,6 +71,25 @@ button:disabled{opacity:.45}
 .card .btns button{min-width:0;white-space:nowrap;font-size:clamp(14px,4vw,17px);padding:12px 6px}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
 .tip{font-size:12px;color:#9a7b55;margin-top:8px;text-align:center}
+/* v1.4 首頁：背景是自動解題、紅車開出去的廣告影片 */
+.hud{position:relative}
+#pkCap{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+#pkCap .cp{background:#fff;border:3px solid var(--orange);color:var(--ink);font-weight:900;font-size:clamp(13px,3.6vw,16px);border-radius:999px;padding:6px 16px;box-shadow:0 3px 0 #d96a00;white-space:nowrap}
+#pkCap .cp span{display:inline-block;opacity:0;animation:pkIn .35s cubic-bezier(.3,1.8,.5,1) forwards}
+@keyframes pkIn{0%{opacity:0;transform:translateY(10px) scale(.4)}100%{opacity:1;transform:none}}
+.pkb{display:none}
+body.promo .hud .pill,body.promo .tip{visibility:hidden}
+body.promo #pkCap{display:flex}
+body.promo .btns .gb{display:none}
+body.promo .btns .pkb{display:block}
+body.promo #pkStart{flex:2;font-size:19px;animation:pkPulse 1.4s ease-in-out infinite}
+@keyframes pkPulse{50%{transform:scale(1.05)}}
+body.promo h1{animation:pkBob 2.4s ease-in-out infinite}
+@keyframes pkBob{50%{transform:translateY(-5px) rotate(-1.5deg)}}
+#sndBox{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));z-index:40;display:flex;gap:10px}
+#sndBox button{flex:none;width:54px;height:54px;padding:0;border-radius:50%;font-size:28px;line-height:54px;background:linear-gradient(#fff,#ffeccc);color:var(--ink);box-shadow:0 4px 0 #e0b870,0 6px 12px rgba(0,0,0,.2);border:3px solid #fff}
+#sndBox button.off{filter:grayscale(1);opacity:.55}
+.car.demo{transition:left .5s cubic-bezier(.3,1.25,.5,1),top .5s cubic-bezier(.3,1.25,.5,1)}
 #toast{position:fixed;left:50%;bottom:14%;transform:translateX(-50%);background:#3b2a16;color:#fff;padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;z-index:70;pointer-events:none}
 </style>
 </head>
@@ -83,6 +102,7 @@ button:disabled{opacity:.45}
     <div class="pill">步數<b id="hMoves">0</b></div>
     <div class="pill">最少步數<b id="hBest">0</b></div>
     <div class="pill">難度<b id="hDiff" style="font-size:16px;line-height:24px">簡單</b></div>
+    <div id="pkCap"></div>
   </div>
   <div id="boardWrap">
     <div id="frame"><svg class="deco" id="deco"></svg></div>
@@ -90,15 +110,18 @@ button:disabled{opacity:.45}
     <div id="exitTag">出口<span style="font-size:1.6em">➜</span></div>
   </div>
   <div class="btns">
-    <button class="o" id="bLevels">📋 選關</button>
-    <button id="bUndo">↶ 上一步</button>
-    <button class="g" id="bReset">⟳ 重來</button>
-    <button class="p" id="bHint">💡 提示</button>
+    <button class="o gb" id="bLevels">📋 選關</button>
+    <button class="gb" id="bUndo">↶ 上一步</button>
+    <button class="g gb" id="bReset">⟳ 重來</button>
+    <button class="p gb" id="bHint">💡 提示</button>
+    <button class="g pkb" id="pkLevels">📋 選關</button>
+    <button class="o pkb" id="pkStart">▶ 開始停車</button>
   </div>
-  <div class="tip">拖動車子沿著車身方向前後滑動，車子不能轉彎、不能穿過其他車 <span id="bSound" style="cursor:pointer">🔊</span></div>
+  <div class="tip">拖動車子沿著車身方向前後滑動，車子不能轉彎、不能穿過其他車 <span style="opacity:.5">v1.4</span></div>
+<div id="sndBox"><button id="bMusic" title="背景音樂">🎵</button><button id="bSound" title="音效">🔊</button></div>
 </div>
 
-<div class="overlay show" id="ovStart"><div class="card">
+<div class="overlay" id="ovStart"><div class="card">
   <div style="font-size:64px;line-height:1.1">🚗🅿️</div>
   <h2 style="font-size:30px;margin:6px 0">益智<span style="color:#ff8a1f">停車場</span></h2>
   <p>移開擋路的車子<br>讓<b style="color:#e33">紅色小車</b>從出口開出去！</p>
@@ -355,7 +378,7 @@ function placeCar(i,px){
   else Object.assign(el.style,{left:c.c*cs+pad+'px',top:p+pad+'px',width:S+'px',height:L+'px'});
 }
 function loadLevel(n){
-  L=Math.max(0,Math.min(LEVELS.length-1,n));save.cur=L;persist();
+  L=Math.max(0,Math.min(LEVELS.length-1,n));if(!demo){save.cur=L;persist();}
   const lv=LEVELS[L];optimal=lv.m;won=false;moves=0;hist=[];
   gridEl.innerHTML='';
   for(let i=0;i<36;i++){const d=document.createElement('div');d.className='cell';d.dataset.i=i;gridEl.appendChild(d)}
@@ -386,13 +409,13 @@ function carAt(x,y){
   return occ(pos,-1)[rr*6+c];
 }
 gridEl.addEventListener('pointerdown',e=>{
-  if(won||dragging)return;
+  if(won||dragging||demo)return;
   const i=carAt(e.clientX,e.clientY);
   if(i>=0)cars[i].el._start(e);
 });
 function bindDrag(el,i){
   el._start=e=>{
-    if(won||dragging)return;e.preventDefault();ac();
+    if(won||dragging||demo)return;e.preventDefault();ac();
     clearHint();
     const c=cars[i],cs=cellSize(),[lo,hi]=range(i);
     dragging={i,el,start:c.h?e.clientX:e.clientY,base:pos[i]*cs,lo:lo*cs,hi:hi*cs,cur:pos[i]*cs,id:e.pointerId,hitEdge:false};
@@ -477,6 +500,88 @@ function renderLevels(){
   $('lvGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('ovLevels').classList.remove('show');loadLevel(+b.dataset.i)});
 }
 
+// ===== 背景音樂：Bossa Nova「停車場午後」=====
+// F 大調、128 BPM，尼龍弦吉他（Karplus-Strong 撥弦合成）切分和弦＋撥弦低音＋顫音鐵琴旋律＋邊擊與刷鼓
+let musicOn=true;try{musicOn=localStorage.getItem('park_music')!=='0'}catch(e){}
+const MU={timer:null,bus:null,next:0,step:0,ks:{},nb:null};
+const mm=m=>440*Math.pow(2,(m-69)/12);
+// 8 小節，每小節兩個和弦位置（前半/後半）
+const BN_CH=[[[53,[57,60,64,65]],[53,[57,60,64,65]]],[[55,[58,62,65,67]],[48,[58,62,64,67]]],[[53,[57,60,64,65]],[53,[57,60,64,65]]],[[57,[60,64,67,69]],[50,[60,62,66,69]]],
+             [[55,[58,62,65,67]],[55,[58,62,65,67]]],[[48,[58,62,64,67]],[48,[58,62,64,67]]],[[53,[57,60,64,69]],[50,[57,60,62,66]]],[[55,[58,62,65,67]],[48,[58,62,64,67]]]];
+const BN_MEL=[[81,0,0,79,0,77,0,0],[79,0,0,0,74,0,0,76],[77,0,0,76,0,72,0,0],[74,0,0,0,0,0,72,74],
+              [77,0,0,76,0,74,0,0],[76,0,0,74,0,72,0,70],[69,0,0,0,72,0,0,0],[0,0,0,0,0,0,0,0]];
+const BN_HIT=[0,3,6,10,13];          // 兩小節（16 個八分音符）裡吉他刷和弦的位置
+const BN_RIM=[0,3,6,10,12];
+function ksBuf(m){if(MU.ks[m])return MU.ks[m];const a=AC,sr=a.sampleRate,len=Math.floor(sr*1.4),buf=a.createBuffer(1,len,sr),d=buf.getChannelData(0);
+  const P=Math.max(2,Math.round(sr/mm(m)));for(let i=0;i<P;i++)d[i]=(Math.random()*2-1)*.8;
+  for(let i=0;i<P;i++)d[i]=(d[i]+d[(i+1)%P]+d[(i+2)%P])/3;      // 柔化：像尼龍弦，不刺耳
+  for(let i=P;i<len;i++)d[i]=(d[i-P]+d[i-P+1])*.4985;   // 往回讀一個週期取平均（不會讀到陣列外）
+  return MU.ks[m]=buf}
+function pluck(m,t,vol,dur){const a=AC,s=a.createBufferSource(),g=a.createGain(),lp=a.createBiquadFilter();s.buffer=ksBuf(m);lp.type='lowpass';lp.frequency.value=2600;
+  g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(.0001,t+dur,.05);s.connect(lp).connect(g).connect(MU.bus);s.start(t);s.stop(t+dur+.3)}
+function vibes(m,t,vol){const a=AC,o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),tr=a.createGain(),lfo=a.createOscillator(),lg=a.createGain();
+  o.frequency.value=mm(m);o2.frequency.value=mm(m)*4;const g2=a.createGain();g2.gain.value=.08;
+  lfo.frequency.value=5.5;lg.gain.value=.35;tr.gain.value=.65;lfo.connect(lg).connect(tr.gain);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+1.3);
+  o.connect(g);o2.connect(g2).connect(g);g.connect(tr).connect(MU.bus);[o,o2,lfo].forEach(x=>{x.start(t);x.stop(t+1.35)})}
+function mnz(t,dur,vol,type,f){const a=AC;if(!MU.nb){MU.nb=a.createBuffer(1,a.sampleRate,a.sampleRate);const d=MU.nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  const s=a.createBufferSource(),fl=a.createBiquadFilter(),g=a.createGain();s.buffer=MU.nb;fl.type=type;fl.frequency.value=f;
+  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(vol,t+dur*.4);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl).connect(g).connect(MU.bus);s.start(t,Math.random()*.5);s.stop(t+dur+.02)}
+function rim(t){const a=AC,o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=1700;g.gain.setValueAtTime(.07,t);g.gain.exponentialRampToValueAtTime(.0001,t+.04);o.connect(g).connect(MU.bus);o.start(t);o.stop(t+.05)}
+function musicTick(){
+  const a=AC;if(!a||!MU.bus)return;const E8=60/128/2;
+  if(MU.next<a.currentTime)MU.next=a.currentTime+.05;
+  while(MU.next<a.currentTime+.2){
+    const t=MU.next,st=MU.step%64,bar=st>>3,i8=st%8,half=i8<4?0:1,[root,ch]=BN_CH[bar][half],i16=st%16;
+    if(BN_HIT.includes(i16))ch.forEach((n,k)=>pluck(n,t+k*.012,.11,E8*1.6));   // 吉他由低到高輕刷
+    if(i8===0)pluck(root-12,t,.32,E8*2.8);if(i8===3)pluck(root-5,t,.26,E8*.9);if(i8===4)pluck(root-5,t,.28,E8*2.8);  // 低音：根音、五度的 bossa 節奏
+    if(BN_RIM.includes(i16))rim(t);
+    if(i8%2===0)mnz(t,E8*1.8,.022,'bandpass',3200);   // 刷子在鼓面畫圈
+    const mel=BN_MEL[bar][i8];if(mel)vibes(mel,t,.06);
+    MU.next+=E8;MU.step++;
+  }
+}
+function musicStart(delay){if(!musicOn||MU.timer)return;const a=ac();if(!a)return;
+  if(!MU.bus){MU.bus=a.createGain();MU.bus.connect(a.destination)}MU.bus.gain.cancelScheduledValues(a.currentTime);MU.bus.gain.setValueAtTime(0,a.currentTime);MU.bus.gain.linearRampToValueAtTime(.5,a.currentTime+(delay||0)+1.2);
+  MU.step=0;MU.next=a.currentTime+(delay||0)+.05;MU.timer=setInterval(musicTick,40);musicTick()}
+function musicStop(){if(!MU.timer)return;clearInterval(MU.timer);MU.timer=null;if(MU.bus&&AC)MU.bus.gain.setTargetAtTime(0,AC.currentTime,.1)}
+function setMusicIcon(){$('bMusic').classList.toggle('off',!musicOn)}
+$('bMusic').onclick=()=>{musicOn=!musicOn;try{localStorage.setItem('park_music',musicOn?'1':'0')}catch(e){}setMusicIcon();musicOn?musicStart():musicStop()};
+setMusicIcon();
+document.addEventListener('visibilitychange',()=>{if(document.hidden)musicStop();else if(musicOn&&AC)musicStart()});
+
+// ===== 首頁廣告影片：電腦用解題器一步步移車，紅車開出出口 =====
+let demo=false,demoId=0,demoI=0,capI=0,capT=null;
+const DEMO_LV=(()=>{const c=LEVELS.map((l,i)=>[i,l.m]).filter(([i,m])=>m>=6&&m<=13).map(x=>x[0]);const out=[];for(let k=0;k<6;k++)out.push(c[Math.floor(k*c.length/6)]);return out})();
+const CAPS=['🚗 拖動車子，前後滑動讓出路！','🔴 目標：讓紅色小車從出口開出去','🅿️ 四種難度、'+LEVELS.length+' 個關卡','⭐ 用最少步數拿三顆星！'];
+function cap(t){$('pkCap').innerHTML='<span class="cp">'+[...t].map((ch,i)=>`<span style="animation-delay:${i*.03}s">${ch===' '?'&nbsp;':ch}</span>`).join('')+'</span>'}
+const dw=ms=>new Promise(r=>setTimeout(r,ms));
+async function demoRun(id){
+  while(id===demoId){
+    loadLevel(DEMO_LV[demoI++%DEMO_LV.length]);cars.forEach(c=>c.el.classList.add('demo'));
+    await dw(900);if(id!==demoId)return;
+    const path=solve(pos.slice())||[];
+    for(const [i,x] of path){
+      if(id!==demoId)return;
+      const el=cars[i].el;el.classList.add('lit','hint',x>pos[i]?'fwd':'back');await dw(260);if(id!==demoId)return;
+      pos[i]=x;moves++;placeCar(i);updHud();await dw(480);if(id!==demoId)return;
+      el.classList.remove('lit','hint','fwd','back');await dw(120);
+    }
+    if(id!==demoId)return;
+    const c=cars[0],cs=cellSize();c.el.classList.add('lit','fwd');c.el.style.transition='left .7s cubic-bezier(.5,0,.8,.4)';c.el.style.left=(8*cs)+'px';
+    await dw(750);if(id!==demoId)return;
+    confetti();cap('🎉 用 '+moves+' 步就把紅車開出去了！');
+    await dw(2600);if(id!==demoId)return;
+    cap(CAPS[capI++%CAPS.length]);
+  }
+}
+function showPromo(){['ovWin','ovLevels','ovStart'].forEach(o=>$(o).classList.remove('show'));
+  demo=true;demoId++;document.body.classList.add('promo');capI=0;cap(CAPS[capI++]);clearInterval(capT);capT=setInterval(()=>{if(demo)cap(CAPS[capI++%CAPS.length])},5200);demoRun(demoId)}
+function leavePromo(){demo=false;demoId++;clearInterval(capT);document.body.classList.remove('promo');clearHint()}
+$('pkStart').onclick=()=>{ac();playIntro();musicStart(1.3);leavePromo();loadLevel(save.cur||0)};
+$('pkLevels').onclick=()=>{ac();musicStart();leavePromo();loadLevel(save.cur||0);openLevels()};
+document.addEventListener('pointerdown',()=>{if(demo){ac();musicStart()}},{passive:true});
+
 // ===== 按鈕 =====
 $('bLevels').onclick=openLevels;
 $('bClose').onclick=()=>$('ovLevels').classList.remove('show');
@@ -485,13 +590,22 @@ $('bReset').onclick=()=>loadLevel(L);
 $('bHint').onclick=hint;
 $('bRetry').onclick=()=>{$('ovWin').classList.remove('show');loadLevel(L)};
 $('bNext').onclick=()=>{$('ovWin').classList.remove('show');loadLevel(L+1)};
-function setSoundIcon(){$('bSound').textContent=soundOn?'🔊':'🔇'}
+function setSoundIcon(){$('bSound').textContent=soundOn?'🔊':'🔇';$('bSound').classList.toggle('off',!soundOn)}
 $('bSound').onclick=()=>{soundOn=!soundOn;try{localStorage.setItem('park_sound',soundOn?'1':'0')}catch(e){}setSoundIcon()};
 setSoundIcon();
-addEventListener('resize',layout);
+// 右上角的音樂／音效按鈕如果會碰到標題、關卡資訊或盤面，就把遊戲往下縮，上方留出空間
+function fitSnd(){
+  const root=document.documentElement;root.style.setProperty('--sb','0px');
+  const box=$('sndBox').getBoundingClientRect();
+  const hit=[...document.querySelectorAll('#app h1,#app .sub,.hud,#boardWrap')].some(e=>{const r=e.getBoundingClientRect();return r.right>box.left-6&&r.top<box.bottom+6&&r.left<box.right&&r.bottom>box.top});
+  if(hit)root.style.setProperty('--sb',(box.bottom+6)+'px');
+  layout();
+}
+addEventListener('resize',fitSnd);
 
 buildDeco();
-loadLevel(save.cur||0);
+showPromo();
+fitSnd();requestAnimationFrame(fitSnd);
 $('bStart').onclick=()=>{ac();playIntro();$('ovStart').classList.remove('show')};
 </script>
 </body>
