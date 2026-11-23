@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>成長方塊 Grow Cube</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100%}
+body{font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;background:radial-gradient(circle at 50% 35%,#fff7e0 0%,#ffe2b8 45%,#f5b98a 100%);color:#5a3b22;overflow:hidden;display:flex;flex-direction:column;align-items:center}
+#top{width:100%;max-width:720px;display:flex;align-items:center;justify-content:space-between;padding:10px 12px 0}
+#title{white-space:nowrap;font-weight:900;font-size:20px;letter-spacing:2px;color:#a0522d;text-shadow:0 2px 0 #fff}
+.btn{border:none;border-radius:999px;background:#fff;color:#8a5a33;font-weight:700;font-size:14px;padding:7px 12px;box-shadow:0 3px 0 #d79a68;cursor:pointer;font-family:inherit}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #d79a68}
+.btn.on{background:#ffcf6e}
+#tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#info{width:100%;max-width:720px;display:flex;justify-content:space-between;padding:6px 14px;font-size:14px;font-weight:700}
+#stage{position:relative;width:min(96vw,560px);height:min(62vh,440px);flex:1 1 auto;max-height:480px}
+#cubeSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#items{position:absolute;inset:0}
+.it{position:absolute;transform:translate(-50%,-100%);text-align:center;transition:font-size .35s cubic-bezier(.3,1.6,.5,1);line-height:1;pointer-events:none}
+.it .e{display:block;filter:drop-shadow(0 4px 2px rgba(90,50,20,.3))}
+.it .lv{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:900;background:#fff;border-radius:8px;padding:1px 5px;color:#a0522d;box-shadow:0 1px 0 #d79a68}
+.it.max .lv{background:#ffd23f;color:#7a3e00}
+.it.wilt .e{filter:grayscale(1) brightness(.7);transform:rotate(-12deg)}
+.it.wilt .lv{background:#777;color:#fff}
+.pop{animation:pop .5s cubic-bezier(.3,1.8,.5,1)}
+@keyframes pop{0%{transform:scale(.2) translateY(30px)}100%{transform:scale(1)}}
+.grow{animation:grow .55s ease}
+@keyframes grow{0%{transform:scale(1)}30%{transform:scale(1.35,.8)}60%{transform:scale(.9,1.2)}100%{transform:scale(1)}}
+.shake{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.float{position:absolute;font-weight:900;font-size:16px;pointer-events:none;animation:flt 1s ease-out forwards;text-shadow:0 2px 0 #fff;transform:translate(-50%,-100%)}
+@keyframes flt{0%{opacity:0;margin-top:0}20%{opacity:1}100%{opacity:0;margin-top:-50px}}
+.spark{position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none}
+#msg{min-height:44px;width:100%;max-width:640px;text-align:center;font-size:14px;padding:4px 12px;line-height:1.5}
+#tray{width:100%;max-width:720px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:8px 10px 16px}
+.slotBtn{width:58px;height:66px;border:none;border-radius:14px;background:#fff;box-shadow:0 4px 0 #d79a68;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .15s}
+.slotBtn .e{font-size:28px;line-height:1.1}
+.slotBtn .n{font-size:12px;font-weight:700;color:#8a5a33}
+.slotBtn:hover{transform:translateY(-3px)}
+.slotBtn:active{transform:translateY(2px);box-shadow:0 1px 0 #d79a68}
+.slotBtn.used{opacity:.25;pointer-events:none;box-shadow:none}
+.overlay{position:fixed;inset:0;background:rgba(80,40,10,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.panel{background:#fffaf0;border-radius:22px;padding:22px 20px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 0 #d79a68}
+.panel h2{color:#a0522d;margin-bottom:10px;font-size:24px}
+.panel p{font-size:14px;line-height:1.7;margin-bottom:8px;text-align:left}
+.stageBtn{display:block;width:100%;margin:8px 0;padding:12px;font-size:17px;border-radius:16px}
+.hidden{display:none!important}
+@media(max-width:480px){#title{font-size:16px;letter-spacing:0}.btn{font-size:12px;padding:6px 8px}#tools{gap:4px}.slotBtn{width:50px;height:58px}.slotBtn .e{font-size:24px}#tray{gap:6px}#info{font-size:12px}}
+#sun{position:absolute;left:50%;top:6%;transform:translateX(-50%);font-size:40px;opacity:0;transition:opacity 1s}
+/* ===== 首頁（背景為自動示範的廣告影片） ===== */
+#menu.title{background:linear-gradient(180deg,rgba(255,247,224,.92) 0%,rgba(255,247,224,0) 22%,rgba(255,247,224,0) 58%,rgba(120,60,20,.35) 100%);flex-direction:column;justify-content:space-between;align-items:center;padding:14px 12px 16px;pointer-events:auto}
+#ttl{text-align:center;padding-top:4px}
+#ttl .big{font-size:clamp(40px,9vw,64px);font-weight:900;letter-spacing:6px;color:#a0522d;text-shadow:0 4px 0 #fff,0 7px 0 #d79a68,0 10px 18px rgba(120,60,20,.35);white-space:nowrap}
+#ttl .big span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-8px) scale(1.06,.94)}60%{transform:translateY(0) scale(.96,1.05)}}
+#ttl .sub{display:inline-block;margin-top:6px;font-size:14px;font-weight:800;color:#fff;background:#7fbf5a;border-radius:999px;padding:4px 14px;box-shadow:0 3px 0 #5a9a3e;letter-spacing:2px}
+#cap{min-height:40px;text-align:center;margin-bottom:10px}
+body.demo #top,body.demo #info,body.demo #tray,body.demo #msg{visibility:hidden}
+#cap .pill{display:inline-block;background:rgba(255,255,255,.93);color:#7a3e1d;font-weight:900;font-size:16px;border-radius:999px;padding:8px 18px;box-shadow:0 4px 0 #d79a68,0 8px 18px rgba(120,60,20,.25)}
+#cap .pill span{display:inline-block;opacity:0;animation:capIn .45s cubic-bezier(.3,1.8,.5,1) forwards}
+@keyframes capIn{0%{opacity:0;transform:translateY(14px) scale(.4)}100%{opacity:1;transform:none}}
+#menu.title .panel{max-width:440px;padding:14px 16px 12px;box-shadow:0 8px 0 #d79a68,0 14px 30px rgba(90,40,10,.35)}
+#menu.title .tag{font-size:14px;line-height:1.6;text-align:center;margin-bottom:6px}
+#menu.title .stageBtn{margin:6px 0;padding:10px;font-size:16px}
+#rules{text-align:left;font-size:13px;line-height:1.7;background:#fff3dc;border-radius:14px;padding:8px 12px;margin:6px 0}
+#rules p{font-size:13px;margin:0 0 4px}
+.mini{display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:12px;color:#a07050}
+.mini .btn{font-size:12px;padding:5px 10px}
+.leaf{position:absolute;top:-30px;font-size:20px;pointer-events:none;opacity:.85}
+@media(max-height:700px){#menu.title .tag{display:none}#cap .pill{font-size:14px;padding:6px 14px}}
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="title">🧊 成長方塊</div>
+  <div id="tools">
+    <button class="btn" id="bUndo">↶ 上一步</button>
+    <button class="btn" id="bReset">⟳ 重來</button>
+    <button class="btn" id="bHint">💡 提示</button>
+    <button class="btn on" id="bMusic">🎵</button>
+    <button class="btn on" id="bSfx">🔊</button>
+    <button class="btn" id="bMenu">☰</button>
+  </div>
+</div>
+<div id="info"><span id="stageName"></span><span id="progress"></span></div>
+<div id="stage">
+  <div id="sun">✨</div>
+  <svg id="cubeSvg"></svg>
+  <div id="items"></div>
+</div>
+<div id="msg"></div>
+<div id="tray"></div>
+
+<div class="overlay title" id="menu">
+  <div id="ttl"><div class="big"><span>成</span><span style="animation-delay:.15s">長</span><span style="animation-delay:.3s">方</span><span style="animation-delay:.45s">塊</span></div><div class="sub">GROW CUBE</div></div>
+  <div style="flex:1"></div>
+  <div id="cap"></div>
+  <div class="panel">
+    <div class="tag">一樣一樣放上方塊，其他東西就會跟著長大。<br>找出正確順序，讓<b>全部剛好長到 MAX</b>！</div>
+    <button class="btn stageBtn hidden" id="bCont" style="background:#ffcf6e">▶ 繼續目前關卡</button>
+    <div id="stageList"></div>
+    <div id="rules" class="hidden">
+      <p>• 把下方的東西一個一個放到方塊上。每放下一樣，<b>方塊上的其他東西</b>可能會受到影響而成長。</p>
+      <p>• 新放下的東西也可能因為<b>已經在方塊上的東西</b>而一出場就比較大。</p>
+      <p>• 每樣東西最高到 <b>Lv4（MAX）</b>，成長過頭就會<b>枯萎</b> 🥀。</p>
+      <p>• 讓<b>所有東西剛好都到 MAX</b>，就能看到完美結局！</p>
+    </div>
+    <div class="mini"><button class="btn" id="bRules">📖 玩法說明</button><span>v0.2</span></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="result">
+  <div class="panel">
+    <h2 id="resTitle"></h2>
+    <div id="resEmoji" style="font-size:44px;margin:6px 0"></div>
+    <p id="resText" style="text-align:center"></p>
+    <button class="btn stageBtn" id="resUndo">↶ 退回上一步</button>
+    <button class="btn stageBtn" id="resRetry">⟳ 再試一次</button>
+    <button class="btn stageBtn" id="resNext">下一關 ▶</button>
+    <button class="btn stageBtn" id="resMenu">☰ 選關</button>
+  </div>
+</div>
+
+<script>
+// ===== 物品資料 =====
+const ITEMS=[
+ {n:'種子',s:['🌰','🌱','🌿','🌳']},
+ {n:'水',s:['💧','💦','🌊','⛲']},
+ {n:'火',s:['🕯️','🔥','🏮','🌋']},
+ {n:'石頭',s:['🪨','⛰️','🏔️','🗻']},
+ {n:'蛋',s:['🥚','🐣','🐥','🐔']},
+ {n:'魚',s:['🐟','🐠','🐬','🐋']},
+ {n:'雲',s:['☁️','🌥️','🌧️','🌈']},
+ {n:'小屋',s:['⛺','🛖','🏠','🏰']},
+ {n:'月亮',s:['🌑','🌒','🌓','🌕']},
+ {n:'齒輪',s:['⚙️','🔧','🤖','🚀']},
+ {n:'毛毛蟲',s:['🐛','🐜','🐞','🦋']},
+ {n:'小嬰兒',s:['👶','🧒','🧑','🧙']},
+];
+// S[i]: 已在方塊上的這些東西，會讓 i 一出場就較大
+// G[i]: i 在方塊上時，放下這些東西會讓 i 成長
+const STAGES=[
+ {name:'第 1 關・小小方塊',ids:[0,1,2,3,4,6],cols:3,rows:2,
+  S:[[1,3,4],[0,3],[0,1,3,5],[1,5],[5],[0]],G:[[2],[0,2],[3],[2,4],[1,2],[1,2,3]],sol:[5,3,4,1,2,0],
+  end:'雲朵下起小雨，種子長成大樹，小雞在樹下散步。方塊變成了一座溫暖的小島！'},
+ {name:'第 2 關・熱鬧方塊',ids:[0,1,2,3,4,5,6,7,8],cols:3,rows:3,
+  S:[[],[0,6,7],[8],[2],[],[3,7],[1,5],[5,6],[]],G:[[1,3,7,8],[5],[3,5,7],[7,8],[1,6,7,8],[0,4],[1,4,7],[1],[1,4,6]],sol:[2,3,5,0,8,4,6,7,1],
+  end:'滿月照著城堡，鯨魚在噴泉旁跳躍，方塊上熱鬧得像一座小王國！'},
+ {name:'第 3 關・完全成長',ids:[0,1,2,3,4,5,6,7,8,9,10,11],cols:4,rows:3,
+  S:[[3,6,7,9],[0,5],[9,11],[5,9],[2,10],[3,4,7],[11],[10,11],[0,3,5,10],[11],[2],[]],
+  G:[[],[5,8,9],[10,11],[1,8,9],[7],[2],[0,3,8],[4,6,11],[9],[3,7,10],[3,7,9],[0,1,4,8]],
+  sol:[9,2,10,4,7,6,11,0,3,1,8,5],
+  end:'小魔法師坐上火箭，蝴蝶繞著彩虹飛舞——方塊成長成一顆會發光的小星球！'},
+];
+const MAXLV=4;
+let cur=0,st=null,cleared=[],demoMode=false,demoT=[],saved=null;
+try{cleared=JSON.parse(localStorage.getItem('growcube_clear')||'[]')}catch(e){cleared=[]}
+function saveClear(){try{localStorage.setItem('growcube_clear',JSON.stringify(cleared))}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const stageEl=$('stage'),itemsEl=$('items'),svg=$('cubeSvg');
+
+// ===== 版面（等角投影方塊） =====
+let geo={};
+function layout(){
+  const r=stageEl.getBoundingClientRect(),P=STAGES[cur];
+  const W=r.width,H=r.height;
+  const n=Math.max(P.cols,P.rows)+ (P.cols+P.rows)/2;
+  const half=Math.min(W*0.44, H*0.55);
+  const cx=W/2, topY=H*0.40;
+  const hw=half, hh=half*0.5, depth=half*0.45;
+  geo={W,H,cx,topY,hw,hh,depth,unit:half/ (P.cols+P.rows) };
+  const T=[cx,topY-hh],R=[cx+hw,topY],B=[cx,topY+hh],L=[cx-hw,topY];
+  const pt=p=>p.join(',');
+  const d=depth;
+  let html=`<defs><linearGradient id="gt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8f28a"/><stop offset="1" stop-color="#7fd36b"/></linearGradient></defs>`;
+  html+=`<ellipse cx="${cx}" cy="${topY+hh+d+18}" rx="${hw*0.95}" ry="${hh*0.35}" fill="rgba(120,60,20,.18)"/>`;
+  html+=`<polygon points="${pt(L)} ${pt(B)} ${B[0]},${B[1]+d} ${L[0]},${L[1]+d}" fill="#c98a55"/>`;
+  html+=`<polygon points="${pt(B)} ${pt(R)} ${R[0]},${R[1]+d} ${B[0]},${B[1]+d}" fill="#a86b3c"/>`;
+  html+=`<polygon points="${pt(T)} ${pt(R)} ${pt(B)} ${pt(L)}" fill="url(#gt)" stroke="#5fae4e" stroke-width="2"/>`;
+  // 格線
+  for(let c=1;c<P.cols;c++){const a=iso(c/P.cols,0),b=iso(c/P.cols,1);html+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="rgba(60,120,40,.25)" stroke-dasharray="4 4"/>`}
+  for(let rr=1;rr<P.rows;rr++){const a=iso(0,rr/P.rows),b=iso(1,rr/P.rows);html+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="rgba(60,120,40,.25)" stroke-dasharray="4 4"/>`}
+  // 土層小石頭裝飾
+  html+=`<g fill="rgba(255,255,255,.15)"><circle cx="${cx-hw*0.5}" cy="${topY+d*0.7}" r="4"/><circle cx="${cx+hw*0.45}" cy="${topY+d*0.9}" r="5"/><circle cx="${cx+hw*0.15}" cy="${topY+hh+d*0.5}" r="3"/></g>`;
+  svg.innerHTML=html;
+  renderItems(false);
+}
+// u: 0..1 沿右上方向, v: 0..1 沿左下方向
+function iso(u,v){const g=geo;return[g.cx+(u-v)*g.hw, g.topY-g.hh+(u+v)*g.hh]}
+function slotPos(k){const P=STAGES[cur];const c=k%P.cols,r=Math.floor(k/P.cols);return iso((c+0.5)/P.cols,(r+0.5)/P.rows)}
+
+// ===== 遊戲狀態 =====
+function newState(){const P=STAGES[cur];return{lv:P.ids.map(()=>0),hist:[],wilt:P.ids.map(()=>false),done:false}}
+function startStage(i){stopDemo();saved=null;cur=i;st=newState();$('menu').classList.add('hidden');$('result').classList.add('hidden');$('sun').style.opacity=0;layout();renderTray();updInfo();say('點選下方的東西，把它放到方塊上吧！');Music.start()}
+
+function place(k){
+  if(st.done||st.lv[k]>0)return;
+  const P=STAGES[cur];
+  st.hist.push(k);
+  const placedBefore=st.hist.slice(0,-1);
+  let start=1+P.S[k].filter(j=>placedBefore.includes(j)).length;
+  const lines=[];
+  st.lv[k]=start;
+  SFX.place();
+  const grown=[];
+  placedBefore.forEach(i=>{ if(P.G[i].includes(k)&&!st.wilt[i]){ st.lv[i]++; grown.push(i);} });
+  // 結算
+  const name=x=>ITEMS[P.ids[x]].n;
+  lines.push(`放下了 <b>${name(k)}</b>${start>1?`，一出場就是 Lv${Math.min(start,MAXLV)}！`:'。'}`);
+  if(grown.length)lines.push(`${grown.map(name).join('、')} 成長了！`);
+  const check=[k,...grown];
+  renderTray();renderItems(true,k,grown);
+  const my=st;
+  setTimeout(()=>{
+    if(st!==my)return;
+    let wil=[],mx=[];
+    check.forEach(i=>{ if(st.lv[i]>MAXLV&&!st.wilt[i]){st.wilt[i]=true;wil.push(i)} else if(st.lv[i]===MAXLV)mx.push(i)});
+    if(grown.length)SFX.grow(grown.length);
+    if(mx.length)setTimeout(()=>SFX.max(),180);
+    if(wil.length){lines.push(`<span style="color:#b33">${wil.map(name).join('、')} 成長過頭，枯萎了…🥀</span>`);setTimeout(()=>SFX.wilt(),250)}
+    renderItems(false,null,[],wil,mx);
+    say(lines.join('<br>'));updInfo();
+    if(st.hist.length===P.ids.length)setTimeout(()=>{if(st===my)finish()},900);
+  },380);
+}
+function finish(){
+  st.done=true;const P=STAGES[cur];
+  if(demoMode){celebrate();caption('全部長到 MAX → 完美結局 🌟');demoLater(()=>runDemo((cur+1)%STAGES.length),4300);return}
+  const maxN=st.lv.filter((l,i)=>l===MAXLV&&!st.wilt[i]).length,all=P.ids.length;
+  const perfect=maxN===all;
+  $('resTitle').textContent=perfect?'🎉 完美成長！':'差一點點…';
+  $('resEmoji').textContent=perfect?'🌟🌟🌟':(maxN>=all-2?'🌟🌟':'🌟');
+  $('resText').innerHTML=perfect?P.end:`MAX：${maxN} / ${all}<br>還有東西沒長到 MAX 或枯萎了。<br>試試看換個順序吧！`;
+  $('resNext').classList.toggle('hidden',!(perfect&&cur<STAGES.length-1));$('resUndo').classList.toggle('hidden',perfect);
+  if(perfect){ if(!cleared.includes(cur)){cleared.push(cur);saveClear()} SFX.win();celebrate(); setTimeout(()=>$('result').classList.remove('hidden'),2600)}
+  else{SFX.fail();setTimeout(()=>$('result').classList.remove('hidden'),600)}
+}
+function celebrate(){
+  $('sun').style.opacity=1;
+  const P=STAGES[cur],my=st;
+  P.ids.forEach((_,k)=>setTimeout(()=>{if(st!==my)return;const el=itemsEl.querySelector(`[data-k="${k}"] .e`);if(el){el.classList.remove('grow');void el.offsetWidth;el.classList.add('grow')}const p=slotPos(k);sparks(p[0],p[1]-30,10);SFX.note(k)},k*160));
+  for(let i=0;i<6;i++)setTimeout(()=>st===my&&sparks(geo.cx+(Math.random()-.5)*geo.hw*1.6,geo.topY-geo.hh-40+Math.random()*60,18),1800+i*120);
+}
+function undo(){if(!st.hist.length)return;const h=st.hist.slice(0,-1);st=newState();replay(h);renderTray();renderItems(false);updInfo();say('退回上一步。');SFX.undo()}
+function replay(h){const P=STAGES[cur];h.forEach(k=>{const pb=st.hist.slice();st.hist.push(k);st.lv[k]=1+P.S[k].filter(j=>pb.includes(j)).length;pb.forEach(i=>{if(P.G[i].includes(k)&&!st.wilt[i])st.lv[i]++});[k,...pb].forEach(i=>{if(st.lv[i]>MAXLV)st.wilt[i]=true})})}
+function hint(){
+  const P=STAGES[cur];
+  let ok=true;for(let i=0;i<st.hist.length;i++)if(st.hist[i]!==P.sol[i]){ok=false;break}
+  if(!ok){let m=0;while(st.hist[m]===P.sol[m])m++;say(`💡 現在這條路已經不能完美了，請按「上一步」退回 <b>${st.hist.length-m}</b> 步。`);return}
+  if(st.hist.length>=P.sol.length)return;
+  const k=P.sol[st.hist.length];say(`💡 下一個試試放 <b>${ITEMS[P.ids[k]].s[0]} ${ITEMS[P.ids[k]].n}</b>`);
+  const b=$('tray').querySelector(`[data-k="${k}"]`);if(b){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake')}
+}
+
+// ===== 繪製 =====
+function sizeFor(l){const u=geo.hw/ (STAGES[cur].cols+STAGES[cur].rows) ;return Math.round(u*[0,0.95,1.25,1.6,2.0][Math.min(l,4)])}
+function renderItems(anim,newK,grown=[],wil=[],mx=[]){
+  const P=STAGES[cur];itemsEl.innerHTML='';
+  const order=P.ids.map((_,k)=>k).sort((a,b)=>{const pa=slotPos(a),pb=slotPos(b);return pa[1]-pb[1]});
+  order.forEach(k=>{
+    if(!st.lv[k])return;
+    const p=slotPos(k),it=ITEMS[P.ids[k]],l=st.lv[k],w=st.wilt[k];
+    const d=document.createElement('div');d.className='it'+(w?' wilt':'')+(l===MAXLV&&!w?' max':'');d.dataset.k=k;
+    d.style.left=p[0]+'px';d.style.top=(p[1]+geo.unit*0.25)+'px';d.style.fontSize=sizeFor(l)+'px';
+    d.innerHTML=`<span class="e">${w?'🥀':it.s[Math.min(l,4)-1]}</span><span class="lv">${w?'枯萎':(l>=MAXLV?'MAX':'Lv'+l)}</span>`;
+    itemsEl.appendChild(d);
+    const e=d.querySelector('.e');
+    if(anim&&k===newK)e.classList.add('pop');
+    if(anim&&grown.includes(k)){e.classList.add('grow');floatTxt(p[0],p[1]-sizeFor(l)*0.8,'+1','#2e8b2e')}
+    if(wil.includes(k)){e.classList.add('shake')}
+    if(mx.includes(k)){floatTxt(p[0],p[1]-sizeFor(l)*0.9,'MAX!','#e08a00');sparks(p[0],p[1]-sizeFor(l)*0.5,12)}
+  });
+}
+function floatTxt(x,y,t,c){const f=document.createElement('div');f.className='float';f.textContent=t;f.style.left=x+'px';f.style.top=y+'px';f.style.color=c;stageEl.appendChild(f);setTimeout(()=>f.remove(),1000)}
+function sparks(x,y,n){const cols=['#ffd23f','#ff7aa2','#7fd36b','#6ec6ff','#ffffff'];for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';s.style.left=x+'px';s.style.top=y+'px';s.style.background=cols[i%cols.length];stageEl.appendChild(s);const a=Math.random()*Math.PI*2,r=30+Math.random()*50;s.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${Math.cos(a)*r}px,${Math.sin(a)*r-20}px) scale(.3)`,opacity:0}],{duration:700+Math.random()*300,easing:'ease-out'}).onfinish=()=>s.remove()}}
+function renderTray(){
+  const P=STAGES[cur],t=$('tray');t.innerHTML='';
+  P.ids.forEach((id,k)=>{const b=document.createElement('button');b.className='slotBtn'+(st.lv[k]?' used':'');b.dataset.k=k;b.innerHTML=`<span class="e">${ITEMS[id].s[0]}</span><span class="n">${ITEMS[id].n}</span>`;b.onclick=()=>{Music.start();place(k)};t.appendChild(b)});
+}
+function updInfo(){const P=STAGES[cur];$('stageName').textContent=P.name;const mx=st.lv.filter((l,i)=>l===MAXLV&&!st.wilt[i]).length;$('progress').textContent=`⭐ MAX ${mx}/${P.ids.length}　步數 ${st.hist.length}/${P.ids.length}`}
+function say(h){$('msg').innerHTML=h}
+function buildMenu(){const L=$('stageList');L.innerHTML='';STAGES.forEach((P,i)=>{const lock=i>0&&!cleared.includes(i-1)&&!cleared.includes(i);const b=document.createElement('button');b.className='btn stageBtn'+(cleared.includes(i)?' on':'');b.textContent=(lock?'🔒 ':cleared.includes(i)?'🌟 ':'▶ ')+P.name+`（${P.ids.length} 樣）`;b.disabled=lock;if(lock)b.style.opacity=.5;b.onclick=()=>startStage(i);L.appendChild(b)})}
+
+// ===== 音效（木琴＋小鐘風格） =====
+let AC=null,master=null,sfxOn=true,musicOn=true;
+function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.8;master.connect(AC.destination)}if(AC.state==='suspended')AC.resume();return AC}
+function tone(f,t,dur,type,vol,dest,attack=0.005){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+attack);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(dest||master);o.start(t);o.stop(t+dur+.05);return o}
+function marimba(f,t,vol=.25,dest){tone(f,t,.45,'sine',vol,dest);tone(f*4,t,.08,'sine',vol*.35,dest);tone(f*10,t,.03,'triangle',vol*.08,dest)}
+const SFX={
+ place(){if(!sfxOn||demoMode)return;const t=ac().currentTime;const o=tone(300,t,.18,'sine',.35);o.frequency.exponentialRampToValueAtTime(700,t+.08);tone(1400,t+.03,.06,'triangle',.08)},
+ grow(n){if(!sfxOn||demoMode)return;const t=ac().currentTime;[523,659,784,1046].slice(0,Math.min(4,n+1)).forEach((f,i)=>marimba(f*1.5,t+i*.07,.2))},
+ max(){if(!sfxOn||demoMode)return;const t=ac().currentTime;[1568,2093,2637].forEach((f,i)=>tone(f,t+i*.06,.6,'sine',.12))},
+ wilt(){if(!sfxOn||demoMode)return;const t=ac().currentTime;const o=tone(400,t,.6,'sawtooth',.12);o.frequency.exponentialRampToValueAtTime(90,t+.55);const l=ac().createOscillator(),lg=ac().createGain();l.frequency.value=12;lg.gain.value=30;l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+.6)},
+ undo(){if(!sfxOn||demoMode)return;const t=ac().currentTime;const o=tone(700,t,.15,'triangle',.2);o.frequency.exponentialRampToValueAtTime(350,t+.12)},
+ win(){if(!sfxOn||demoMode)return;const t=ac().currentTime;[587,740,880,1109,1175,1480,1760].forEach((f,i)=>marimba(f,t+i*.09,.25));[1175,1480,1760].forEach(f=>tone(f,t+.75,1.4,'sine',.08))},
+ fail(){if(!sfxOn||demoMode)return;const t=ac().currentTime;[440,415,392].forEach((f,i)=>marimba(f,t+i*.18,.2))},
+ note(k){if(!sfxOn||demoMode)return;const sc=[587,659,740,831,880,988,1109,1175,1319,1480,1661,1760];marimba(sc[k%12],ac().currentTime,.2)}
+};
+
+// ===== 背景音樂：G 混合利地亞調「花園搖擺」，84 BPM 搖擺八分音符 =====
+// 馬林巴主旋律＋卡林巴琴分解和弦＋撥弦行走貝斯＋刷沙鈴
+let NOISE=null;
+function noiseBuf(){const a=ac();if(!NOISE){NOISE=a.createBuffer(1,a.sampleRate*.25,a.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}return NOISE}
+function shaker(t,vol,dest){const a=ac(),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=noiseBuf();f.type='highpass';f.frequency.value=6500;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+.09);s.connect(f);f.connect(g);g.connect(dest);s.start(t);s.stop(t+.12)}
+function kalimba(f,t,vol,dest){tone(f,t,.7,'sine',vol,dest,.002);tone(f*5.4,t,.05,'sine',vol*.25,dest,.001)}
+const Music=(()=>{
+  let timer=null,nextT=0,step=0,bus=null;const BPM=84,BEAT=60/BPM;
+  const N=m=>440*Math.pow(2,(m-69)/12);
+  // 每小節 8 個搖擺八分音符，0=休止
+  const mel=[74,0,71,74,79,0,77,76, 77,0,0,72,69,0,72,0, 76,0,72,76,79,0,76,72, 74,0,0,0,71,0,67,0,
+             74,0,71,74,79,0,81,79, 77,0,76,77,72,0,0,0, 74,0,77,81,79,0,77,74, 71,0,74,0,67,0,0,0];
+  // G、F、C、G、G、F、Dm、G（混合利地亞的 ♭VII 與 v）
+  const ch=[[43,47,50,53],[41,45,48,53],[36,40,43,48],[43,47,50,53],[43,47,50,53],[41,45,48,53],[38,41,45,50],[43,47,50,55]];
+  function sched(){
+    const a=ac();
+    while(nextT<a.currentTime+.2){
+      const e=step%64,bar=Math.floor(e/8),c=ch[bar],inBar=e%8;
+      const t=nextT+(e%2?BEAT*2/3-BEAT/2:0);   // 後半拍延後成三連音位置（搖擺）
+      if(mel[e])marimba(N(mel[e]),t,.12,bus);
+      if(e%2===0){const q=inBar/2,walk=[c[0],c[2],c[0]+12,c[3]-1];tone(N(walk[q]-12),t,.32,'triangle',.2,bus,.004)}
+      if(inBar>=4&&e%2===1)kalimba(N(c[1+(inBar-4)/2|0]+24),t,.045,bus);
+      shaker(t,e%2?.05:.022,bus);
+      nextT+=BEAT/2;step++;
+    }
+  }
+  return{start(){if(!musicOn||timer)return;const a=ac();if(!bus){bus=a.createGain();bus.gain.value=.55;bus.connect(master)}nextT=a.currentTime+.1;timer=setInterval(sched,40)},
+         stop(){clearInterval(timer);timer=null}};
+})();
+
+// ===== 首頁廣告影片：用實際關卡自動示範 =====
+function demoLater(f,ms){demoT.push(setTimeout(f,ms))}
+function stopDemo(){demoMode=false;document.body.classList.remove('demo');demoT.forEach(clearTimeout);demoT=[];clearInterval(leafTimer);leafTimer=null}
+function caption(txt){const c=$('cap');c.innerHTML='<span class="pill">'+[...txt].map((ch,i)=>`<span style="animation-delay:${i*0.035}s">${ch===' '?'&nbsp;':ch}</span>`).join('')+'</span>'}
+let leafTimer=null;
+function leaves(){const L=['🍃','🌸','🍀','✨'];const d=document.createElement('div');d.className='leaf';d.textContent=L[Math.random()*L.length|0];d.style.left=(Math.random()*100)+'vw';$('menu').appendChild(d);const dx=(Math.random()-.5)*160,dur=6000+Math.random()*4000;d.animate([{transform:'translate(0,0) rotate(0)'},{transform:`translate(${dx}px,${innerHeight+60}px) rotate(${Math.random()>.5?'':'-'}540deg)`}],{duration:dur,easing:'linear'}).onfinish=()=>d.remove()}
+function runDemo(i){
+  demoT.forEach(clearTimeout);demoT=[];
+  cur=i;st=newState();$('sun').style.opacity=0;layout();renderTray();updInfo();say('');
+  const P=STAGES[i];
+  caption(['放一樣東西，其他東西就會跟著長大！','順序很重要：長過頭會枯萎 🥀','12 樣東西，全部長到 MAX！'][i]);
+  P.sol.forEach((k,j)=>demoLater(()=>{
+    const b=$('tray').querySelector(`[data-k="${k}"]`);if(b){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake')}
+    place(k);
+    if(j===2)caption(i===1?'找出正確順序，就不會枯萎':'每放一樣，旁邊的東西 +1');
+  },1100+j*(i===2?780:1000)));
+}
+function showTitle(){
+  if(st&&!demoMode&&!st.done&&st.hist.length)saved={cur,hist:st.hist.slice()};
+  $('bCont').classList.toggle('hidden',!saved);
+  buildMenu();$('result').classList.add('hidden');$('menu').classList.remove('hidden');
+  demoMode=true;document.body.classList.add('demo');runDemo(saved?saved.cur:0);
+  if(!leafTimer)leafTimer=setInterval(leaves,900);
+}
+function continueSaved(){const s0=saved;startStage(s0.cur);replay(s0.hist);renderTray();renderItems(false);updInfo();say('繼續剛才的進度。')}
+
+// ===== 按鈕 =====
+$('bUndo').onclick=()=>{if(!st||!st.hist.length)return;st.done=false;$('result').classList.add('hidden');undo()};
+$('bReset').onclick=()=>startStage(cur);
+$('bHint').onclick=hint;
+$('bMenu').onclick=showTitle;
+$('bMusic').onclick=e=>{musicOn=!musicOn;e.currentTarget.classList.toggle('on',musicOn);musicOn?Music.start():Music.stop()};
+$('bSfx').onclick=e=>{sfxOn=!sfxOn;e.currentTarget.classList.toggle('on',sfxOn)};
+$('resUndo').onclick=()=>$('bUndo').onclick();
+$('resRetry').onclick=()=>startStage(cur);
+$('resNext').onclick=()=>startStage(cur+1);
+$('resMenu').onclick=()=>{saved=null;showTitle()};
+$('bCont').onclick=continueSaved;
+$('bRules').onclick=()=>$('rules').classList.toggle('hidden');
+$('menu').addEventListener('pointerdown',()=>Music.start());
+window.addEventListener('resize',()=>{if(st)layout()});
+showTitle();
+</script>
+</body>
+</html>
