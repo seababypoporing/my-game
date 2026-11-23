@@ -48,7 +48,7 @@ header{width:100%;max-width:640px;display:flex;align-items:center;justify-conten
 @keyframes shake{25%{margin-left:-6px}75%{margin-left:6px}}
 .stream{position:absolute;width:7px;border-radius:4px;z-index:40;transform-origin:50% 0;transform:scaleY(0);transition:transform .15s linear;pointer-events:none}
 footer{width:100%;max-width:560px;display:flex;justify-content:space-around;padding:8px 10px calc(14px + env(safe-area-inset-bottom))}
-.tool{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:linear-gradient(#6a3fb5,#45237f);border:2px solid rgba(255,255,255,.25);color:#fff;border-radius:16px;width:70px;padding:8px 0 6px;font-size:22px;cursor:pointer;box-shadow:0 4px 0 #2a1150}
+.tool{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:linear-gradient(#6a3fb5,#45237f);border:2px solid rgba(255,255,255,.25);color:#fff;border-radius:16px;width:64px;padding:8px 0 6px;font-size:22px;cursor:pointer;box-shadow:0 4px 0 #2a1150}
 .tool span{font-size:12px}
 .tool:active{transform:translateY(3px);box-shadow:0 1px 0 #2a1150}
 .tool[disabled]{opacity:.4}
@@ -71,6 +71,28 @@ footer{width:100%;max-width:560px;display:flex;justify-content:space-around;padd
 #toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(0,0,0,.65);padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;transition:opacity .3s;z-index:95;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1}
 #ver{position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.4;z-index:2}
+/* v0.6 首頁：背景是自動倒藥水的廣告影片 */
+body.promo header,body.promo footer,body.promo #ver{visibility:hidden}
+#msPromo{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(18,8,39,.92) 0%,rgba(18,8,39,0) 24%,rgba(18,8,39,0) 68%,rgba(18,8,39,.94) 100%)}
+body.promo #msPromo{display:flex}
+#msLogo{text-align:center}
+#msLogo .big{font-size:clamp(34px,9vw,58px);font-weight:900;letter-spacing:3px;white-space:nowrap;
+  background:linear-gradient(90deg,#ffd6ff,#c8b6ff,#b8f2ff,#ffd6ff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 16px rgba(200,150,255,.55));animation:msShine 4s linear infinite}
+@keyframes msShine{to{background-position:200% 0}}
+#msLogo .eng{margin-top:2px;font-size:13px;letter-spacing:6px;opacity:.75}
+#msCap{min-height:40px;margin-top:10px;text-align:center}
+#msCap .pill{display:inline-block;background:linear-gradient(90deg,#7b2cbf,#c77dff);border-radius:999px;padding:7px 16px;font-weight:800;font-size:15px;box-shadow:0 0 16px rgba(199,125,255,.5)}
+#msCap .pill span{display:inline-block;opacity:0;animation:msIn .4s cubic-bezier(.3,1.8,.5,1) forwards}
+@keyframes msIn{0%{opacity:0;transform:translateY(12px) scale(.4)}100%{opacity:1;transform:none}}
+#msCard{width:min(88vw,340px);text-align:center}
+#msCard .btn{margin:7px 0}
+#msStart{font-size:20px;padding:14px;animation:msPulse 1.6s ease-in-out infinite}
+@keyframes msPulse{50%{transform:scale(1.04)}}
+#msCard .two{display:flex;gap:10px}#msCard .two .btn{flex:1}
+#msCard .v{font-size:10px;opacity:.45}
 .rules{text-align:left;font-size:14px;line-height:1.7;opacity:.9;margin:4px 0 12px;padding-left:18px}
 </style>
 </head>
@@ -98,10 +120,16 @@ footer{width:100%;max-width:560px;display:flex;justify-content:space-around;padd
     <button class="tool" id="tAdd">🧪<span>加瓶子</span><b class="badge" id="nAdd">1</b></button>
     <button class="tool" id="tHint">💡<span>提示</span><b class="badge" id="nHint">3</b></button>
     <button class="tool" id="tRestart">⟳<span>重來</span></button>
+    <button class="tool" id="tHome">🏠<span>首頁</span></button>
   </footer>
 </div>
 <div id="toast"></div>
-<div id="ver">v0.4</div>
+<div id="ver">v0.6</div>
+<div id="msPromo">
+  <div><div id="msLogo"><div class="big">✨ 魔法藥水排序 ✨</div><div class="eng">MAGIC SORT</div></div><div id="msCap"></div></div>
+  <div id="msCard"><button class="btn green" id="msStart">🧪 開始調藥</button>
+    <div class="two"><button class="btn" id="msLevels">📜 選關</button><button class="btn alt" id="msHelp">❔ 玩法</button></div><div class="v">v0.6</div></div>
+</div>
 
 <div class="modal" id="mWin"><div class="card">
   <h2>🎉 過關！</h2><p id="winText"></p>
@@ -216,6 +244,7 @@ function genLevel(L){
 }
 
 // ---------- 狀態 ----------
+let demo=false,demoId=0,demoLv=0;
 let tubes=[],level=save.level,moves=0,sel=-1,busy=false,history=[],revealed=new Set();
 let undoLeft,addLeft,hintLeft,els=[];
 
@@ -294,7 +323,7 @@ function clearHint(){els.forEach(e=>e.classList.remove('hintFrom','hintTo'));}
 
 // ---------- 遊戲流程 ----------
 function startLevel(L){
-  level=L;save.level=L;persist();
+  level=L;if(!demo){save.level=L;persist();}
   tubes=genLevel(L);moves=0;sel=-1;busy=false;history=[];revealed=new Set();
   undoLeft=5;addLeft=1;hintLeft=3;
   tubes.forEach(t=>{if(t.length)t[t.length-1].h=false;});
@@ -322,7 +351,7 @@ function tap(i){
 function shake(i){const b=els[i];b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');snd.error();}
 
 async function doPour(from,to){
-  busy=true;
+  busy=true;const myT=tubes;
   history.push(clone(tubes));
   const a=tubes[from],b=tubes[to];
   const amt=Math.min(topRun(a),CAP-b.length);
@@ -339,7 +368,7 @@ async function doPour(from,to){
     {transform:`translate(${mx*0.6}px,${ty-40}px) rotate(${dir*45}deg)`,offset:.55},
     {transform:`translate(${mx}px,${ty}px) rotate(${ang}deg)`}
   ],{duration:340,easing:'ease-in-out',fill:'forwards'});
-  await go.finished;
+  await go.finished;if(tubes!==myT)return;
   // 倒水流
   const st=document.createElement('div');st.className='stream';st.style.background=color;
   const surf=eb.offsetHeight*(1-0.22*b.length)-4;
@@ -358,14 +387,14 @@ async function doPour(from,to){
   newly.forEach(id=>revealed.add(id));
   paint(from,newly);paint(to,newly);
   moves++;hud();
-  await wait(260+amt*90);
+  await wait(260+amt*90);if(tubes!==myT){st.remove();return;}
   st.style.transformOrigin='50% 100%';st.style.transform='scaleY(0)';
   setTimeout(()=>st.remove(),200);
   const back=ea.animate([
     {transform:`translate(${mx}px,${ty}px) rotate(${ang}deg)`},
     {transform:'translate(0,0) rotate(0deg)'}
   ],{duration:300,easing:'ease-out',fill:'forwards'});
-  await back.finished;
+  await back.finished;if(tubes!==myT)return;
   go.cancel();back.cancel();
   ea.classList.remove('sel','pouring');
   if(newly.size)snd.reveal();
@@ -378,6 +407,7 @@ async function doPour(from,to){
   afterMove();
 }
 function afterMove(){
+  if(demo)return;
   if(isWin()){
     setTimeout(win,350);return;
   }
@@ -458,7 +488,7 @@ window.addEventListener('resize',()=>{if(!busy){build();}});
 let actx=null;
 function ac(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();}catch(e){}return actx;}
 function tone(f,dur,{type='sine',vol=.15,at=0,to=null}={}){
-  if(!save.sound)return;const c=ac();if(!c)return;
+  if(!save.sound||demo)return;const c=ac();if(!c)return;
   const t0=c.currentTime+at;const o=c.createOscillator(),g=c.createGain();
   o.type=type;o.frequency.setValueAtTime(f,t0);if(to)o.frequency.exponentialRampToValueAtTime(to,t0+dur);
   g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
@@ -516,81 +546,64 @@ const snd={
   }
 };
 
-// ---------- 奇幻背景音樂（即時合成） ----------
-const M={playing:false,timer:null,bus:null,rev:null,next:0,step:0,cycle:0};
-const BPM=74,STEP=60/BPM/2; // 八分音符
+// ---------- 背景音樂：Lo-fi「魔法藥坊」（即時合成）----------
+// G 小調、78 BPM 搖擺十六分音符；玻璃琴和弦墊＋「啵」氣泡音旋律＋sub bass＋黑膠雜訊與悶鼓
+const M={playing:false,timer:null,bus:null,rev:null,next:0,step:0,cycle:0,noise:null};
+const BPM=78,BEAT=60/BPM,S16=BEAT/4;
 const mtof=m=>440*Math.pow(2,(m-69)/12);
-// 8 小節和弦進行（A小調 + 魔法感的轉折）
-const PROG=[
-  {b:45,n:[57,60,64,71]}, // Am(add9)
-  {b:41,n:[57,60,64,65]}, // Fmaj7
-  {b:48,n:[60,64,67,71]}, // Cmaj7
-  {b:43,n:[59,62,67,69]}, // G6/9
-  {b:50,n:[57,60,62,65]}, // Dm9
-  {b:41,n:[57,60,64,67]}, // Fmaj9
-  {b:40,n:[55,59,62,64]}, // Em7
-  {b:40,n:[56,59,62,64]}  // E7 (升G，神秘感)
-];
-const ARP=[0,1,2,3,4,3,2,1];
-const PENTA=[81,84,86,88,91,93,96,98];
-// 旋律：每個數字是第幾個和弦音（+12），-1 表示休止；兩套輪流
-const MEL=[
-  [3,-1,-1,2,-1,-1,1,-1],[2,-1,-1,-1,3,-1,-1,-1],[3,-1,-1,2,-1,1,-1,-1],[0,-1,-1,-1,-1,-1,-1,-1],
-  [3,-1,-1,1,-1,-1,2,-1],[3,-1,-1,-1,2,-1,-1,-1],[1,-1,2,-1,3,-1,-1,-1],[3,-1,-1,-1,-1,-1,2,-1]
-];
+// 4 小節：Gm9 → E♭maj7 → Cm9 → D7♭9（每小節 16 格）
+const PROG=[{b:43,n:[58,62,65,69]},{b:39,n:[55,58,62,67]},{b:36,n:[55,58,62,63]},{b:38,n:[54,57,60,63]}];
+// 氣泡旋律：兩套各 4 小節，數字是 G 小調五聲音階的第幾音，-1 休止
+const SCALE=[67,70,72,74,77,79,82,84,86];
+const MEL=[[4,-1,-1,3,-1,-1,2,-1, -1,-1,1,-1,2,-1,-1,-1],[3,-1,-1,-1,4,-1,5,-1, 4,-1,-1,-1,-1,-1,-1,-1],
+           [2,-1,3,-1,-1,-1,4,-1, -1,-1,6,-1,5,-1,4,-1],[3,-1,-1,-1,-1,-1,1,-1, -1,-1,0,-1,-1,-1,-1,-1],
+           [5,-1,-1,4,-1,-1,5,-1, 7,-1,-1,-1,6,-1,-1,-1],[4,-1,-1,-1,3,-1,4,-1, -1,-1,2,-1,-1,-1,-1,-1],
+           [6,-1,5,-1,4,-1,-1,-1, 3,-1,4,-1,-1,-1,2,-1],[1,-1,-1,-1,2,-1,-1,-1, 0,-1,-1,-1,-1,-1,-1,-1]];
 function makeImpulse(c,sec){
   const len=c.sampleRate*sec,buf=c.createBuffer(2,len,c.sampleRate);
-  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6);}
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);}
   return buf;
 }
 function musicBus(){
   const c=ac();if(!c)return null;
   if(!M.bus){
-    M.bus=c.createGain();M.bus.gain.value=0;M.bus.connect(c.destination);
-    M.rev=c.createConvolver();M.rev.buffer=makeImpulse(c,3.2);
-    const rg=c.createGain();rg.gain.value=0.55;M.rev.connect(rg);rg.connect(M.bus);
+    M.bus=c.createGain();M.bus.gain.value=0;
+    const warm=c.createBiquadFilter();warm.type='lowpass';warm.frequency.value=5200;M.bus.connect(warm);warm.connect(c.destination);
+    M.rev=c.createConvolver();M.rev.buffer=makeImpulse(c,2.2);
+    const rg=c.createGain();rg.gain.value=0.4;M.rev.connect(rg);rg.connect(M.bus);
+    M.noise=c.createBuffer(1,c.sampleRate,c.sampleRate);const d=M.noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
   }
   return c;
 }
-function voice(c,t,{f,type='sine',dur,vol,atk=.005,wet=.5,dry=1,partial=0,vib=0,lp=0,detune=0}){
-  const g=c.createGain();
-  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+atk);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-  let out=g;
-  if(lp){const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp;g.connect(fl);out=fl;}
-  const dg=c.createGain();dg.gain.value=dry;out.connect(dg);dg.connect(M.bus);
-  const wg=c.createGain();wg.gain.value=wet;out.connect(wg);wg.connect(M.rev);
-  const oscs=[];
-  const mk=(fr,ty,v,dt=0)=>{const o=c.createOscillator(),og=c.createGain();o.type=ty;o.frequency.value=fr;o.detune.value=dt;og.gain.value=v;o.connect(og);og.connect(g);oscs.push(o);return o;};
-  const o=mk(f,type,1,detune);
-  if(detune)mk(f,type,1,-detune);
-  if(partial)mk(f*4,'sine',partial);
-  if(vib){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=5.2;lg.gain.value=f*0.012;l.connect(lg);oscs.forEach(x=>lg.connect(x.frequency));l.start(t);l.stop(t+dur+.1);}
-  oscs.forEach(x=>{x.start(t);x.stop(t+dur+.05);});
-}
+function env(c,t,vol,atk,dur){const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+atk);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);return g;}
+function send(c,node,wet){node.connect(M.bus);if(wet){const w=c.createGain();w.gain.value=wet;node.connect(w);w.connect(M.rev);}}
+// 玻璃琴：兩個略微走音的正弦＋泛音，慢起慢收
+function glass(c,t,m,dur){const g=env(c,t,.022,.35,dur);send(c,g,.7);
+  [[1,1,4],[1,1,-4],[3,.12,0]].forEach(([k,v,dt])=>{const o=c.createOscillator(),og=c.createGain();o.frequency.value=mtof(m)*k;o.detune.value=dt;og.gain.value=v;o.connect(og);og.connect(g);o.start(t);o.stop(t+dur+.05);});}
+// 氣泡音：正弦往上滑的「啵」
+function bubble(c,t,m,vol){const f=mtof(m),o=c.createOscillator(),g=env(c,t,vol,.004,.38);
+  o.frequency.setValueAtTime(f*.82,t);o.frequency.exponentialRampToValueAtTime(f,t+.045);o.frequency.exponentialRampToValueAtTime(f*1.03,t+.3);
+  o.connect(g);send(c,g,.5);o.start(t);o.stop(t+.45);}
+function sub(c,t,m,dur){const o=c.createOscillator(),g=env(c,t,.13,.02,dur);o.frequency.value=mtof(m);o.connect(g);send(c,g,0);o.start(t);o.stop(t+dur+.05);}
+function nz(c,t,vol,dur,type,freq,q=1){const s=c.createBufferSource(),f=c.createBiquadFilter(),g=env(c,t,vol,.002,dur);s.buffer=M.noise;f.type=type;f.frequency.value=freq;f.Q.value=q;s.connect(f);f.connect(g);send(c,g,0);s.start(t,Math.random()*.8,dur+.05);}
+function kick(c,t){const o=c.createOscillator(),g=env(c,t,.22,.003,.28);o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(42,t+.18);o.connect(g);send(c,g,0);o.start(t);o.stop(t+.32);}
 function playStep(c,s,t){
-  const bar=Math.floor(s/8)%PROG.length,pos=s%8,ch=PROG[bar];
-  if(pos===0){
-    // 鋪底和弦（柔和的弦樂墊）
-    ch.n.forEach(n=>voice(c,t,{f:mtof(n-12),type:'sawtooth',dur:STEP*8+1.2,vol:.018,atk:.9,wet:.8,dry:.6,lp:900,detune:7}));
-    // 低音
-    voice(c,t,{f:mtof(ch.b-12),type:'sine',dur:STEP*8,vol:.09,atk:.08,wet:.2});
-  }
-  // 豎琴 / 鋼片琴琶音
-  const idx=ARP[pos];const note=idx<4?ch.n[idx]+12:ch.n[0]+24;
-  voice(c,t,{f:mtof(note),type:'triangle',dur:1.4,vol:.05,wet:.7,partial:.25});
-  // 長笛旋律（每兩輪換一次有/無，讓音樂有起伏）
-  if(M.cycle%2===1){
-    const m=MEL[bar][pos];
-    if(m>=0)voice(c,t,{f:mtof(ch.n[m]+12),type:'sine',dur:STEP*3.2,vol:.06,atk:.09,wet:.6,vib:1});
-  }
-  // 魔法閃爍鈴聲
-  if(Math.random()<.12)voice(c,t+STEP*Math.random(),{f:mtof(PENTA[Math.floor(Math.random()*PENTA.length)]),type:'sine',dur:2.2,vol:.025,wet:1,dry:.4,partial:.4});
-  if(pos===7&&bar===PROG.length-1)M.cycle++;
+  const bar=Math.floor(s/16)%PROG.length,pos=s%16,ch=PROG[bar];
+  const tt=t+(pos%2?S16*.28:0);                 // 搖擺：反拍延後
+  if(pos===0){ch.n.forEach(n=>glass(c,t,n,BEAT*4+.6));sub(c,t,ch.b,BEAT*1.6);}
+  if(pos===10)sub(c,tt,ch.b+(bar===3?0:7)-12+12,BEAT*1.2);
+  if(pos===0||pos===7||pos===10)kick(c,tt);
+  if(pos===4||pos===12)nz(c,t,.07,.16,'bandpass',1800,.9);   // 悶悶的小鼓
+  if(pos%2===0)nz(c,tt,pos%4?.012:.02,.05,'highpass',7500);  // 輕刷 hi-hat
+  if(Math.random()<.35)nz(c,t+Math.random()*S16,.008,.012,'highpass',3000); // 黑膠雜訊
+  const m=MEL[(M.cycle%2)*4+bar][pos];
+  if(m>=0)bubble(c,tt,SCALE[m],.055);
+  if(pos===15&&bar===PROG.length-1)M.cycle++;
 }
 function schedule(){
   const c=actx;if(!c||!M.playing)return;
   if(M.next<c.currentTime)M.next=c.currentTime+.05;
-  while(M.next<c.currentTime+.35){playStep(c,M.step,M.next);M.next+=STEP;M.step++;}
+  while(M.next<c.currentTime+.35){playStep(c,M.step,M.next);M.next+=S16;M.step++;}
 }
 function startMusic(){
   if(!save.music||M.playing)return;
@@ -599,7 +612,7 @@ function startMusic(){
   M.bus.gain.cancelScheduledValues(c.currentTime);
   M.bus.gain.setValueAtTime(M.bus.gain.value,c.currentTime);
   M.bus.gain.linearRampToValueAtTime(.8,c.currentTime+2);
-  M.timer=setInterval(schedule,60);schedule();
+  M.timer=setInterval(schedule,50);schedule();
 }
 function stopMusic(){
   if(!M.playing)return;M.playing=false;clearInterval(M.timer);
@@ -638,8 +651,43 @@ function drawStar(x,y,r){cx.beginPath();for(let i=0;i<10;i++){const a=i*Math.PI/
 // 星空
 (function(){const s=$('stars');for(let i=0;i<70;i++){const d=document.createElement('div');d.className='star';d.style.left=Math.random()*100+'%';d.style.top=Math.random()*100+'%';d.style.animationDelay=(Math.random()*3)+'s';const z=1+Math.random()*2;d.style.width=d.style.height=z+'px';s.appendChild(d);}})();
 
-startLevel(save.level);
-if(save.max<=1&&save.level===1)$('mHelp').classList.add('show');
+// ---------- v0.6 首頁廣告影片：用解題器自動倒藥水 ----------
+const DEMO_LV=[5,7,9,6,11,8];
+const CAPS=['點一個瓶子，再點另一個，把藥水倒過去！','同顏色疊在一起，裝滿一瓶就蓋上軟木塞','？是神秘藥水，倒開上面才會現形','困難關卡 🔥 考驗你的魔法腦袋'];let capI=0,capT=null;
+function cap(t){$('msCap').innerHTML='<span class="pill">'+[...t].map((ch,i)=>`<span style="animation-delay:${i*.03}s">${ch}</span>`).join('')+'</span>';}
+async function demoRun(id){
+  while(id===demoId){
+    const L=DEMO_LV[demoLv++%DEMO_LV.length];startLevel(L);
+    const strs=tubes.map(t=>t.map(l=>String.fromCharCode(97+l.c)).join(''));
+    const sol=solve(strs,150000)||[];
+    await wait(900);if(id!==demoId)return;
+    let k=0;
+    for(const [f,t] of sol){
+      if(id!==demoId)return;if(++k>40)break;
+      els[f].classList.add('sel');await wait(320);if(id!==demoId)return;
+      await doPour(f,t);if(id!==demoId)return;
+      await wait(180);
+    }
+    if(id!==demoId)return;
+    if(isWin()){confetti();cap('✨ 全部排好了！過關 ✨');}
+    await wait(3000);if(id!==demoId)return;
+    cap(CAPS[capI++%CAPS.length]);
+  }
+}
+function showPromo(){
+  ['mWin','mStuck','mLevels','mHelp'].forEach(m=>$(m).classList.remove('show'));
+  document.body.classList.add('promo');demo=true;demoId++;
+  capI=0;cap(CAPS[capI++]);clearInterval(capT);capT=setInterval(()=>{if(demo)cap(CAPS[capI++%CAPS.length]);},5000);
+  $('msStart').textContent=save.max>1?`🧪 繼續第 ${save.level} 關`:'🧪 開始調藥';
+  demoRun(demoId);
+}
+function leavePromo(){demo=false;demoId++;clearInterval(capT);document.body.classList.remove('promo');parts=[];busy=false;}
+$('msStart').onclick=()=>{ac();startMusic();leavePromo();startLevel(save.level);if(save.max<=1&&save.level===1)$('mHelp').classList.add('show');};
+$('msLevels').onclick=()=>{ac();startMusic();leavePromo();startLevel(save.level);$('btnLevels').onclick();};
+$('msHelp').onclick=()=>{ac();startMusic();$('mHelp').classList.add('show');};
+$('tHome').onclick=()=>{if(busy)return;showPromo();};
+$('mHelp').style.zIndex=120;
+showPromo();
 })();
 </script>
 </body>
