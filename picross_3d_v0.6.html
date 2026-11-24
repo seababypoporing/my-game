@@ -52,6 +52,16 @@
   .ov { padding-top:calc(18px + var(--sb,0px)); }
   #sndBox { position:fixed; right:max(12px,env(safe-area-inset-right)); top:max(12px,env(safe-area-inset-top)); z-index:20; display:flex; gap:10px; }
   #sndBox button { width:54px; height:54px; padding:0; border-radius:50%; font-size:28px; line-height:50px; cursor:pointer; background:var(--card); border:2px solid var(--accent); color:var(--fg); box-shadow:0 4px 12px rgba(0,0,0,.4); }
+  #setPanel { position:fixed; z-index:21; right:max(12px,env(safe-area-inset-right)); top:calc(max(12px,env(safe-area-inset-top)) + 64px); width:min(86vw,320px);
+    background:var(--card); border:2px solid var(--accent); border-radius:16px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.55); display:none; }
+  #setPanel.show { display:block; }
+  #setPanel .hd { font-weight:800; margin-bottom:8px; }
+  #setPanel .opt { display:flex; align-items:center; gap:10px; cursor:pointer; padding:8px 4px; border-top:1px solid var(--rule); }
+  #setPanel .opt span { flex:1; text-align:left; } #setPanel .opt small { display:block; color:var(--muted); font-size:.78rem; line-height:1.4; margin-top:2px; }
+  #setPanel .opt input { display:none; }
+  #setPanel .opt i { flex:none; width:48px; height:28px; border-radius:14px; background:var(--rule); position:relative; transition:background .2s; }
+  #setPanel .opt i::after { content:''; position:absolute; left:3px; top:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:left .2s; }
+  #setPanel .opt input:checked + i { background:var(--accent); } #setPanel .opt input:checked + i::after { left:23px; }
   #sndBox button.off { filter:grayscale(1); opacity:.45; border-color:var(--rule); }
   /* v0.5 首頁：背景是自動雕刻方塊的廣告影片 */
   body.promo #top, body.promo #pname, body.promo #msg, body.promo #slice, body.promo #bar { visibility:hidden; }
@@ -92,9 +102,12 @@
   </div>
 </div>
 
-<div id="sndBox"><button id="bMus" aria-label="背景音樂開關">🎵</button><button id="bSnd" aria-label="音效開關">🔊</button></div>
+<div id="sndBox"><button id="bSet" aria-label="設定">⚙️</button><button id="bMus" aria-label="背景音樂開關">🎵</button><button id="bSnd" aria-label="音效開關">🔊</button></div>
+<div id="setPanel"><div class="hd">⚙️ 設定</div>
+  <label class="opt"><span><b>完成的數字變暗</b><small>一排已經敲到剩下正確的數量時，那排的數字變灰色（提示）</small></span><input type="checkbox" id="optDim"><i></i></label>
+  <button class="btn" id="setOk" style="width:100%;margin-top:8px">關閉</button></div>
 <div id="pcPromo">
-  <div><div id="pcLogo"><div class="w"><b>3</b><b style="animation-delay:.2s">D</b><b style="animation-delay:.4s">數</b><b style="animation-delay:.6s">織</b></div><div class="s">PICROSS 3D ・ v0.5</div></div><div id="pcCap"></div></div>
+  <div><div id="pcLogo"><div class="w"><b>3</b><b style="animation-delay:.2s">D</b><b style="animation-delay:.4s">數</b><b style="animation-delay:.6s">織</b></div><div class="s">PICROSS 3D ・ v0.6</div></div><div id="pcCap"></div></div>
   <div id="pcBtns"><button class="btn" id="pcHelp">📖 說明</button><button class="btn" id="pcStart">▶ 開始遊戲</button></div>
 </div>
 <div class="ov" id="start"><div class="box">
@@ -365,6 +378,7 @@ const MAXMIS = 5, CUBE = 0xd8e0ee, PAINT = 0x4da3ff;
 let G, sol, cols, lines, lineOf, removed, painted, cubes = [], tool = 'chisel', mistakes = 0, t0 = 0, over = true, won = false, timer = null, sndOn = true;
 let totalFalse = 0, removedFalse = 0, elapsedFinal = 0, curPuzzle = -1, randN = 4, cx = 0, cy = 0, cz = 0;
 let sAxis = 0, sVal = 0, sSide = 1, demo = false;
+let dimDone = false; try { dimDone = localStorage.getItem('picross3d_dim') === '1'; } catch (e) {}   // 完成的數字變暗：預設關閉
 let records = {}; try { records = JSON.parse(localStorage.getItem('picross3d_rec') || '{}') || {}; } catch (e) { records = {}; }
 function saveRec() { try { localStorage.setItem('picross3d_rec', JSON.stringify(records)); } catch (e) {} }
 
@@ -422,7 +436,7 @@ function rebuildLabels() {
     if (!visible(i)) continue; const p = gxyz(G, i);
     for (let axis = 0; axis < 3; axis++) {
       const ln = lines[lineOf[axis][i]]; if (!ln.show) continue;
-      const remain = ln.cells.reduce((s, ix) => s + (removed[ix] ? 0 : 1), 0), mat = labelMat(ln.cnt, ln.kind, remain === ln.cnt);
+      const remain = ln.cells.reduce((s, ix) => s + (removed[ix] ? 0 : 1), 0), mat = labelMat(ln.cnt, ln.kind, dimDone && remain === ln.cnt);
       for (const sgn of [-1, 1]) {
         const q = p.slice(); q[axis] += sgn;
         if (q[axis] >= 0 && q[axis] < G.D[axis] && visible(gi(G, q[0], q[1], q[2]))) continue;
@@ -482,7 +496,7 @@ function tone(f, d, type, v, when, slide) {
   } catch (e) {}
 }
 const sfx = { chisel: () => { tone(220, .09, 'square', .1, 0, 90); tone(900, .05, 'triangle', .06); }, paint: () => tone(660, .12, 'triangle', .12, 0, 880), unpaint: () => tone(520, .08, 'triangle', .08, 0, 380),
-  bad: () => { tone(740, .16, 'sine', .1, 0, 520); tone(560, .22, 'sine', .08, .1, 380); tone(1480, .05, 'triangle', .03); },   // 錯誤：輕柔的「咿嗚」下滑兩音（原本低沉的叭叭方波太刺耳） slice: () => tone(1200, .03, 'sine', .05),
+  bad: () => { tone(740, .16, 'sine', .1, 0, 520); tone(560, .22, 'sine', .08, .1, 380); tone(1480, .05, 'triangle', .03); }, slice: () => tone(1200, .03, 'sine', .05),   // bad：輕柔的「咿嗚」下滑兩音（原本低沉的叭叭方波太刺耳）
   win: () => [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, .22, 'triangle', .14, i * .12)), fail: () => [392, 330, 262, 196].forEach((f, i) => tone(f, .25, 'sawtooth', .08, i * .16)) };
 
 // ---------- 操作 ----------
@@ -736,6 +750,10 @@ function showPromo() { ['start', 'win', 'fail', 'help'].forEach(id => $(id).styl
 function leavePromo() { demo = false; demoId++; clearInterval(capT); document.body.classList.remove('promo'); over = true; won = false; }
 $('pcStart').onclick = () => { leavePromo(); musicStart(); newPuzzle(0); showMenu(); };
 $('pcHelp').onclick = () => { $('help').style.display = 'flex'; };
+$('optDim').checked = dimDone;
+$('optDim').onchange = () => { dimDone = $('optDim').checked; try { localStorage.setItem('picross3d_dim', dimDone ? '1' : '0'); } catch (e) {} if (G) rebuildLabels(); };
+$('bSet').onclick = () => $('setPanel').classList.toggle('show');
+$('setOk').onclick = () => $('setPanel').classList.remove('show');
 
 resize(); fitSnd(); loop(); showPromo();
 [...document.querySelectorAll('.ov')].forEach(o => o.addEventListener('pointerdown', e => { if (e.target === o && o.id !== 'fail') o.style.display = 'none'; }));
