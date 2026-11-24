@@ -5,20 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>大老二</title>
 <style>
-:root{--panel:#fff8ec;--ink:#1d2a2a;--sub:#5b6a68;--gold:#ffc83d;--cw0:56px;--cw:var(--cw0);color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:#1e2b2a;--ink:#f2efe6;--sub:#a8b8b4;color-scheme:dark}}
-:root[data-theme="dark"]{--panel:#1e2b2a;--ink:#f2efe6;--sub:#a8b8b4;color-scheme:dark}
+:root{--panel:rgba(9,38,27,.94);--ink:#fbf3df;--sub:#bcd6c8;--gold:#ffc83d;--cw0:56px;--cw:var(--cw0);color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100vh;background:#17583f radial-gradient(#2b8a65,#12462f);color:#fff;font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;user-select:none;-webkit-user-select:none}
 .hide{display:none!important}
-.panel{background:var(--panel);color:var(--ink);border-radius:18px;padding:24px;max-width:460px;margin:24px auto;box-sizing:border-box;width:calc(100% - 24px)}
-.panel h1{margin:0;font-size:34px}.panel h2{font-size:15px;margin:18px 0 8px}
+.panel{background:var(--panel);color:var(--ink);border:2px solid rgba(255,200,61,.55);box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06);border-radius:18px;padding:24px;max-width:460px;margin:24px auto;box-sizing:border-box;width:calc(100% - 24px)}
+.panel h1{margin:0;font-size:34px;color:var(--gold);text-shadow:0 2px 0 #6b4a00}.panel h2{font-size:15px;margin:18px 0 8px}
 .sub{color:var(--sub);font-size:14px;line-height:1.7;margin:4px 0}
 .seg{display:flex;gap:8px}
-.seg button,.b{font:inherit;font-size:16px;border:2px solid var(--sub);background:transparent;color:var(--ink);border-radius:10px;padding:9px 16px;cursor:pointer}
+.seg button,.b{font:inherit;font-size:16px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;transition:transform .12s}
+.b:active,.seg button:active{transform:scale(.95)}
 .seg button{flex:1}
 .seg button.on{background:var(--gold);border-color:var(--gold);color:#1d2a2a;font-weight:700}
-.b.p{background:var(--gold);border-color:var(--gold);color:#1d2a2a;font-weight:800;font-size:18px}
+.b.p{background:linear-gradient(#ffd866,#f0a81e);border-color:#ffd866;color:#3a2600;font-weight:800;font-size:18px;box-shadow:0 3px 0 #9a6700}
 .b:disabled{opacity:.4;cursor:default}
 .b:focus-visible,.seg button:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 5px #000}
 details{margin-top:16px}summary{cursor:pointer;font-size:14px;color:var(--sub)}
@@ -26,7 +25,7 @@ details{margin-top:16px}summary{cursor:pointer;font-size:14px;color:var(--sub)}
 #top{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
 .op{text-align:center;padding:6px 10px;border-radius:12px;border:2px solid transparent;font-size:14px}
 .op.turn{border-color:var(--gold);background:rgba(255,255,255,.12)}
-.back{width:calc(var(--cw)*.75);height:calc(var(--cw)*1.05);margin:0 auto 4px;border-radius:7px;border:2px solid #fff;background:repeating-linear-gradient(45deg,#2b4fa3 0 6px,#244490 6px 12px);display:grid;place-items:center;font-weight:800;font-size:calc(var(--cw)*.4);text-shadow:0 1px 3px #000}
+.back{width:calc(var(--cw)*.75);height:calc(var(--cw)*1.05);margin:0 auto 4px;border-radius:7px;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45),inset 0 0 0 2px #d9a532;background:radial-gradient(circle at 50% 50%,rgba(255,215,100,.35) 0 18%,transparent 19%),repeating-linear-gradient(45deg,#b3202c 0 5px,#8f1822 5px 10px);display:grid;place-items:center;font-weight:800;font-size:calc(var(--cw)*.4);text-shadow:0 1px 3px #000}
 .back.dead{background:repeating-linear-gradient(45deg,#6b5b95 0 6px,#5a4c82 6px 12px);border-style:dashed}
 #mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:200px;text-align:center}
 #log{font-size:14px;color:#cfe8dc;min-height:20px}#info{font-size:17px;font-weight:700;min-height:26px}
@@ -35,19 +34,64 @@ details{margin-top:16px}summary{cursor:pointer;font-size:14px;color:var(--sub)}
 .c{width:var(--cw);height:calc(var(--cw)*1.4);flex:none;background:#fff;color:#1b1b1b;border-radius:calc(var(--cw)*.12);box-shadow:0 1px 4px rgba(0,0,0,.5);padding:calc(var(--cw)*.06) calc(var(--cw)*.08);box-sizing:border-box;font-size:calc(var(--cw)*.34);font-weight:800;cursor:pointer;transition:transform .12s}
 .c.r{color:#d6342c}.c b,.c i{display:block;line-height:1.05;font-style:normal}
 .row .c+.c{margin-left:calc(var(--cw)*-.45)}
+.c{position:relative;background:linear-gradient(160deg,#fff 0%,#f6f1e4 100%);border:1px solid #d9cfb8;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.c u{position:absolute;right:8%;bottom:4%;text-decoration:none;font-size:calc(var(--cw)*.62);line-height:1;opacity:.9}
+.tbl .c.drop{animation:drop .38s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes drop{0%{transform:translateY(-60px) scale(1.25) rotate(-8deg);opacity:0}100%{transform:none;opacity:1}}
+.callout{position:fixed;left:50%;top:42%;z-index:30;transform:translate(-50%,-50%);font-size:clamp(38px,11vw,72px);font-weight:900;color:#fff;-webkit-text-stroke:2px #5a0010;
+  text-shadow:0 5px 0 #7a0012,0 0 24px rgba(255,80,60,.8);pointer-events:none;white-space:nowrap;animation:call 1.3s ease-out forwards}
+.callout.g{color:#ffe27a;-webkit-text-stroke:2px #6b4a00;text-shadow:0 5px 0 #6b4a00,0 0 24px rgba(255,210,80,.8)}
+@keyframes call{0%{transform:translate(-50%,-50%) scale(3);opacity:0}15%{transform:translate(-50%,-50%) scale(1);opacity:1}75%{opacity:1}100%{transform:translate(-50%,-70%) scale(1.05);opacity:0}}
+.shake{animation:shk .45s}@keyframes shk{20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-5px,3px)}80%{transform:translate(3px,-2px)}}
+.flash{position:fixed;inset:0;z-index:29;background:#fff;pointer-events:none;animation:fl .35s forwards}@keyframes fl{from{opacity:.75}to{opacity:0}}
+.conf{position:fixed;top:-20px;z-index:28;width:10px;height:14px;pointer-events:none}
+/* 右上角的音樂／音效大按鈕（各款遊戲統一） */
+#sndBox{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));z-index:40;display:flex;gap:10px}
+#sndBox button{width:54px;height:54px;padding:0;border-radius:50%;font-size:28px;line-height:50px;cursor:pointer;background:rgba(9,38,27,.9);border:2px solid var(--gold);color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#sndBox button.off{filter:grayscale(1);opacity:.45}
+body{padding-top:var(--sb,0px)}
+/* v0.5 首頁：背景是四位電腦實際對打的廣告影片 */
+body.promo #btns,body.promo #err,body.promo #score,body.promo #setup{visibility:hidden}
+body.promo #setup{display:none}
+#promo{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:space-between;pointer-events:none;
+  padding:calc(env(safe-area-inset-top,0px) + 12px + var(--sb,0px)) 12px calc(env(safe-area-inset-bottom,0px) + 14px);
+  background:linear-gradient(180deg,rgba(6,30,20,.92) 0%,rgba(6,30,20,.55) 22%,rgba(6,30,20,0) 38%,rgba(6,30,20,0) 72%,rgba(6,30,20,.9) 100%)}
+body.promo #promo{display:flex}
+#pLogo{text-align:center;position:relative}
+#pLogo .fan{height:clamp(44px,10vmin,66px);position:relative;width:200px;margin:0 auto -18px}
+#pLogo .fan .c{position:absolute;left:50%;bottom:0;--cw:clamp(28px,6.6vmin,44px);transform-origin:50% 120%;animation:fan 3s ease-in-out infinite}
+@keyframes fan{0%,100%{transform:translateX(-50%) rotate(var(--r))}50%{transform:translateX(-50%) rotate(calc(var(--r)*1.35)) translateY(-4px)}}
+#pLogo h1{margin:0;font-size:clamp(34px,min(13vw,12vmin),76px);font-weight:900;letter-spacing:8px;color:var(--gold);text-shadow:0 4px 0 #6b4a00,0 8px 22px rgba(0,0,0,.6);position:relative}
+#pCap{min-height:38px;margin-top:6px;text-align:center}
+#pCap .cp{display:inline-block;background:rgba(9,38,27,.92);border:2px solid var(--gold);border-radius:999px;padding:6px 16px;font-weight:800;font-size:15px;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#pCap .cp span{display:inline-block;opacity:0;animation:pIn .35s cubic-bezier(.3,1.8,.5,1) forwards}
+@keyframes pIn{0%{opacity:0;transform:translateY(10px) scale(.4)}100%{opacity:1;transform:none}}
+#pBtns{display:flex;gap:10px;pointer-events:auto;width:min(92vw,400px)}
+#pBtns .b{flex:1;color:#fff}#pBtns .b.p{flex:2;color:#3a2600;font-size:20px;animation:pPulse 1.5s ease-in-out infinite}
+@keyframes pPulse{50%{transform:scale(1.05)}}
+#rulesOv{position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
 .c.sel{transform:translateY(calc(var(--cw)*-.3));box-shadow:0 0 0 3px var(--gold),0 3px 8px rgba(0,0,0,.5)}
 .tbl .c{cursor:default}
 #btns{display:flex;gap:10px;justify-content:center;margin-top:12px}
 #btns .b{color:#fff;border-color:#fff}#btns .b.p{color:#1d2a2a;border-color:var(--gold)}
 #err{text-align:center;min-height:20px;color:#ffd6d0;font-size:14px;margin-top:6px}
 #end{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
-.num{width:84px;font:inherit;font-size:16px;padding:6px 8px;border-radius:8px;border:2px solid var(--sub);background:transparent;color:var(--ink)}
+.num{width:84px;font:inherit;font-size:16px;padding:6px 8px;border-radius:8px;border:2px solid rgba(255,255,255,.35);background:rgba(0,0,0,.25);color:var(--ink)}
 #score{text-align:center;font-size:13px;color:#cfe8dc;margin-bottom:6px;line-height:1.6}
 #endL{line-height:1.8}
 @media (prefers-reduced-motion:reduce){.c{transition:none}}
 </style>
 </head>
 <body>
+<div id="sndBox"><button id="bMus" aria-label="背景音樂開關">🎵</button><button id="bSnd" aria-label="音效開關">🔊</button></div>
+<div id="promo">
+  <div><div id="pLogo"><div class="fan">
+    <div class="c" style="--r:-28deg"><b>3</b><i>♣</i><u>♣</u></div><div class="c r" style="--r:-14deg"><b>K</b><i>♦</i><u>♦</u></div>
+    <div class="c r" style="--r:0deg"><b>A</b><i>♥</i><u>♥</u></div><div class="c" style="--r:14deg"><b>2</b><i>♠</i><u>♠</u></div><div class="c" style="--r:28deg"><b>2</b><i>♣</i><u>♣</u></div></div>
+    <h1>大老二</h1></div><div id="pCap"></div></div>
+  <div id="pBtns"><button class="b" id="pRules">📖 規則</button><button class="b p" id="pStart">▶ 開始遊戲</button></div>
+</div>
+<div id="rulesOv" class="hide"><div class="panel" id="rulesBox" style="max-height:86vh;overflow:auto"></div></div>
 <div id="setup" class="panel">
   <h1>大老二</h1>
   <p class="sub">和電腦對戰的撲克牌遊戲，先出完手牌的人獲勝。</p>
@@ -83,7 +127,6 @@ details{margin-top:16px}summary{cursor:pointer;font-size:14px;color:var(--sub)}
     <button class="b" id="bPass">過牌</button>
     <button class="b" id="bHint">提示</button>
     <button class="b p" id="bPlay">出牌</button>
-    <button class="b" id="bMute" aria-label="開關音效" title="音效">🔊</button>
     <button class="b" id="bMenu">設定</button>
   </div>
   <div id="err" role="status"></div>
@@ -110,7 +153,7 @@ function audio() {
   if (ac && ac.state === 'suspended') ac.resume();
 }
 function tone(f, d, type = 'sine', v = .1, f2 = 0, delay = 0) {
-  if (!ac || muted) return;
+  if (!ac || muted || demo) return;
   const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t);
   if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
@@ -118,7 +161,7 @@ function tone(f, d, type = 'sine', v = .1, f2 = 0, delay = 0) {
   o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
 }
 function noise(d, v) {
-  if (!ac || muted) return;
+  if (!ac || muted || demo) return;
   const n = Math.floor(ac.sampleRate * d), b = ac.createBuffer(1, n, ac.sampleRate), a = b.getChannelData(0);
   for (let i = 0; i < n; i++) a[i] = (Math.random() * 2 - 1) * (1 - i / n);
   const s = ac.createBufferSource(), g = ac.createGain(); g.gain.value = v; s.buffer = b; s.connect(g); g.connect(ac.destination); s.start();
@@ -193,7 +236,7 @@ function aiPick(i, force) {
 }
 
 // ---------- 遊戲流程 ----------
-let cfg = {n: 2, p: 4, m: 'wins', t: 3, tr: true}, G = null, M = null, sel = [];
+let cfg = {n: 2, p: 4, m: 'wins', t: 3, tr: true}, G = null, M = null, sel = [], lastTable = null, demo = false;
 // ---------- 比賽（多局累積勝場與分數） ----------
 function newMatch() { M = {mode: cfg.m, target: cfg.t, wins: Array(cfg.n).fill(0), pts: Array(cfg.n).fill(0), round: 1, done: false}; }
 const board = () => G.P.map((p, j) => `${p.name}：${M.wins[j]} 勝，${M.pts[j]} 分`).join('<br>');
@@ -202,22 +245,23 @@ function start() {
   const deck = [...Array(52).keys()];
   for (let i = 51; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
   const parts = cfg.n == 2 ? cfg.p : cfg.n, size = Math.floor(52 / parts), P = [];
-  for (let i = 0; i < cfg.n; i++) P.push({name: i ? (cfg.n == 2 ? '電腦' : '電腦 ' + 'ABC'[i - 1]) : '你', human: !i, hand: deck.slice(i * size, (i + 1) * size).sort((a, b) => a - b)});
+  for (let i = 0; i < cfg.n; i++) P.push({name: demo ? ['阿財', '小美', '阿明', '王董'][i] : i ? (cfg.n == 2 ? '電腦' : '電腦 ' + 'ABC'[i - 1]) : '你', human: !i && !demo, hand: deck.slice(i * size, (i + 1) * size).sort((a, b) => a - b)});
   let low = 99, s = 0; P.forEach((q, i) => { if (q.hand[0] < low) { low = q.hand[0]; s = i; } });
   G = {P, n: cfg.n, hidden: 52 - cfg.n * size, size, turn: s, table: null, passes: 0, first: true, must: low, over: false, msg: `${P[s].name === '你' ? '你' : P[s].name}持有最小的牌 ${nm(low)}，先出牌`};
-  sel = [];
+  sel = []; lastTable = null;
   ['setup', 'end'].forEach(x => $(x).classList.add('hide')); $('game').classList.remove('hide');
   loop();
 }
 function loop() {
   render();
-  const g = G; if (!g.over && !g.P[g.turn].human) setTimeout(() => { if (G === g && !g.over) aiTurn(); }, 800);
+  const g = G; if (!g.over && !g.P[g.turn].human) setTimeout(() => { if (G === g && !g.over) aiTurn(); }, demo ? 700 : 800);
 }
 function aiTurn() { const i = G.turn, c = aiPick(i); c ? play(i, c.cs) : pass(i); }
 function play(i, cs) {
   const p = G.P[i]; p.hand = p.hand.filter(c => !cs.includes(c));
   G.table = {cs: [...cs].sort((a, b) => a - b), e: ev(cs), by: i}; G.passes = 0; G.first = false; sel = [];
   G.msg = `${p.name}出牌`; snd(bomb(G.table.e) ? 'bomb' : 'play');
+  if (bomb(G.table.e)) bombFx(G.table.e.t >= 4 ? '同花順！' : '鐵支！');
   if (!p.hand.length) return over(i);
   G.turn = (G.turn + 1) % G.n; loop();
 }
@@ -229,6 +273,7 @@ function pass(i) {
 }
 function over(i) {
   G.over = true;
+  if (demo) { render(); callout(G.P[i].name + ' 出完了！', 'g'); confetti(); setTimeout(() => { if (demo) demoStart(); }, 3400); return; }
   let tot = 0; const rows = [];
   G.P.forEach((p, j) => {   // 其他玩家剩下的牌：每張 1 分，每有一張 2 分數加倍一次
     if (j == i) return;
@@ -244,8 +289,8 @@ function over(i) {
   $('endL').innerHTML = `${G.P[i].name}得 <b>${tot}</b> 分<br>${rows.join('<br>')}<br><br><b>${M.done ? '最終成績' : '目前成績'}</b><br>${board()}`;
   setTimeout(() => snd(M.done ? (w == 0 ? 'matchWin' : 'lose') : (i == 0 ? 'roundWin' : 'lose')), 350);
   $('again').textContent = M.done ? '再來一場' : '下一局';
-  render();
-  $('end').classList.remove('hide');
+  render(); if (i == 0) { callout('你贏了！', 'g'); confetti(); }
+  setTimeout(() => $('end').classList.remove('hide'), i == 0 ? 900 : 300);
 }
 function check(cs) {
   const e = ev(cs);
@@ -256,7 +301,7 @@ function check(cs) {
 }
 
 // ---------- 畫面 ----------
-const cardH = (c, s) => `<div class="c${su(c) == 1 || su(c) == 2 ? ' r' : ''}${s ? ' sel' : ''}" data-c="${c}"><b>${RK[rk(c)]}</b><i>${SU[su(c)]}</i></div>`;
+const cardH = (c, s, d) => `<div class="c${su(c) == 1 || su(c) == 2 ? ' r' : ''}${s ? ' sel' : ''}${d ? ' drop' : ''}" data-c="${c}"${d ? ` style="animation-delay:${d - 1}s"` : ''}><b>${RK[rk(c)]}</b><i>${SU[su(c)]}</i><u>${SU[su(c)]}</u></div>`;
 function render() {
   const g = G, me = g.P[0], mine = g.turn == 0 && !g.over;
   let t = '';
@@ -265,7 +310,8 @@ function render() {
   $('top').innerHTML = t;
   $('score').textContent = `第 ${M.round} 局　${M.mode == 'wins' ? `先贏 ${M.target} 局` : `先得 ${M.target} 分`}　｜　` + g.P.map((p, j) => `${p.name} ${M.wins[j]}勝 ${M.pts[j]}分`).join('　');
   $('log').textContent = g.msg;
-  $('tbl').innerHTML = g.table ? g.table.cs.map(c => cardH(c)).join('') : '<span style="color:#cfe8dc">桌上沒有牌</span>';
+  const fresh = g.table && g.table !== lastTable; lastTable = g.table;
+  if (fresh || !g.table) $('tbl').innerHTML = g.table ? g.table.cs.map((c, k) => cardH(c, false, 1 + k * .05)).join('') : '<span style="color:#cfe8dc">桌上沒有牌</span>';
   $('info').textContent = g.over ? '' : mine ? (g.first ? `輪到你：第一手必須包含 ${nm(g.must)}` : g.table ? '輪到你：出更大的牌，或過牌' : '輪到你：請任意出牌') : `${g.P[g.turn].name}思考中…`;
   const h = me.hand, rows = Math.max(1, Math.ceil(h.length / 13)), per = Math.ceil(h.length / rows) || 1;
   const cw = Math.max(30, Math.min(64, Math.floor((Math.min(innerWidth, 900) - 20) / (1 + (per - 1) * .55))));
@@ -317,9 +363,73 @@ const menu = () => { G = null; $('game').classList.add('hide'); $('end').classLi
 $('start').onclick = () => { newMatch(); start(); };
 $('again').onclick = () => { if (M.done) newMatch(); else M.round++; start(); };
 $('bMenu').onclick = $('menu2').onclick = menu;
-$('bMute').onclick = () => { muted = !muted; $('bMute').textContent = muted ? '🔇' : '🔊'; audio(); };
-addEventListener('resize', () => { if (G) render(); });
-sync();
+addEventListener('resize', () => { if (G) render(); fitSnd(); });
+
+// ---------- 畫面特效 ----------
+function callout(t, cls) { const d = document.createElement('div'); d.className = 'callout' + (cls ? ' ' + cls : ''); d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1400); }
+function bombFx(t) { callout(t); const f = document.createElement('div'); f.className = 'flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 400);
+  document.body.classList.remove('shake'); void document.body.offsetWidth; document.body.classList.add('shake'); }
+function confetti() { const C = ['#ffc83d', '#e94b4b', '#ffffff', '#4bc0e9', '#6be36b'];
+  for (let k = 0; k < 70; k++) { const d = document.createElement('div'); d.className = 'conf'; d.style.left = Math.random() * 100 + 'vw'; d.style.background = C[k % C.length]; document.body.appendChild(d);
+    d.animate([{ transform: 'translateY(0) rotate(0)' }, { transform: `translate(${(Math.random() - .5) * 200}px,${innerHeight + 40}px) rotate(${Math.random() * 900}deg)` }], { duration: 1800 + Math.random() * 1600, delay: Math.random() * 400, easing: 'cubic-bezier(.3,.6,.6,1)' }).onfinish = () => d.remove(); } }
+
+// ---------- 背景音樂：探戈「午夜牌局」----------
+// D 小調、116 BPM：手風琴（兩把走音方波＋帶通＋顫音）四拍重音和弦、斷奏低音、哈巴奈拉節奏，第二輪加手風琴旋律
+let musOn = true; try { musOn = localStorage.getItem('bigtwo_music') !== '0'; muted = localStorage.getItem('bigtwo_snd') === '0'; } catch (e) {}
+const MU = { timer: null, bus: null, next: 0, step: 0 };
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+const TG_CH = [[38, [62, 65, 69]], [38, [62, 65, 69]], [45, [61, 64, 67]], [45, [61, 64, 67]], [43, [62, 67, 70]], [38, [62, 65, 69]], [40, [62, 64, 68]], [45, [61, 64, 67]]];
+const TG_MEL = [[74, 0, 0, 73, 74, 0, 77, 0], [76, 0, 74, 0, 73, 0, 70, 0], [69, 0, 0, 70, 69, 0, 67, 0], [64, 0, 0, 0, 0, 0, 0, 0], [70, 0, 0, 69, 70, 0, 74, 0], [77, 0, 76, 0, 74, 0, 69, 0], [71, 0, 0, 72, 74, 0, 76, 0], [73, 0, 0, 0, 0, 0, 0, 0]];
+function reed(m, t, d, v) {   // 手風琴
+  const c = ac, bp = c.createBiquadFilter(), g = c.createGain(), tr = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+  bp.type = 'bandpass'; bp.frequency.value = 1400; bp.Q.value = .6; lfo.frequency.value = 6; lg.gain.value = .18; tr.gain.value = .82; lfo.connect(lg); lg.connect(tr.gain);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .03); g.gain.setValueAtTime(v * .8, t + d * .6); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  [-7, 7].forEach(dt => { const o = c.createOscillator(); o.type = 'square'; o.frequency.value = mf(m); o.detune.value = dt; o.connect(bp); o.start(t); o.stop(t + d + .05); });
+  bp.connect(g); g.connect(tr); tr.connect(MU.bus); lfo.start(t); lfo.stop(t + d + .05);
+}
+function pizz(m, t, v) { const c = ac, o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter(); o.type = 'triangle'; o.frequency.value = mf(m); lp.type = 'lowpass'; lp.frequency.value = 700;
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + .28); o.connect(lp); lp.connect(g); g.connect(MU.bus); o.start(t); o.stop(t + .3); }
+function knock(t, v) { const c = ac, n = Math.floor(c.sampleRate * .05), b = c.createBuffer(1, n, c.sampleRate), a = b.getChannelData(0); for (let i = 0; i < n; i++) a[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 3;
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; f.type = 'bandpass'; f.frequency.value = 900; g.gain.value = v; s.connect(f); f.connect(g); g.connect(MU.bus); s.start(t); }
+function musicTick() {
+  if (!ac || !MU.bus) return; const E8 = 60 / 116 / 2;
+  if (MU.next < ac.currentTime) MU.next = ac.currentTime + .05;
+  while (MU.next < ac.currentTime + .2) {
+    const t = MU.next, st = MU.step % 64, bar = st >> 3, i8 = st % 8, [root, ch] = TG_CH[bar], habanera = bar % 2 === 1;
+    if (i8 % 2 === 0) { const acc = i8 === 0 || i8 === 4; ch.forEach(n => reed(n, t, E8 * (acc ? .9 : .55), acc ? .035 : .022)); }   // 四拍重音（marcato）
+    if (habanera ? [0, 3, 4, 6].includes(i8) : (i8 === 0 || i8 === 4)) pizz(root + (i8 === 4 || i8 === 6 ? 7 : 0), t, .32);           // 低音：偶數小節哈巴奈拉
+    if (i8 === 0 || i8 === 4) knock(t, i8 === 0 ? .25 : .15); if (i8 === 7 && bar === 7) knock(t, .3);
+    if (MU.step >= 64) { const n = TG_MEL[bar][i8]; if (n) reed(n, t, E8 * (TG_MEL[bar][i8 + 1] === 0 ? 1.8 : .9), .05); }
+    MU.next += E8; MU.step++;
+  }
+}
+function musicStart() { if (!musOn || MU.timer) return; audio(); if (!ac) return;
+  if (!MU.bus) { MU.bus = ac.createGain(); MU.bus.connect(ac.destination); }
+  MU.bus.gain.cancelScheduledValues(ac.currentTime); MU.bus.gain.setValueAtTime(0, ac.currentTime); MU.bus.gain.linearRampToValueAtTime(.6, ac.currentTime + 1.2);
+  MU.step = 0; MU.next = ac.currentTime + .1; MU.timer = setInterval(musicTick, 50); musicTick(); }
+function musicStop() { if (!MU.timer) return; clearInterval(MU.timer); MU.timer = null; if (MU.bus) MU.bus.gain.setTargetAtTime(0, ac.currentTime, .12); }
+function sndUI() { $('bSnd').textContent = muted ? '🔇' : '🔊'; $('bSnd').classList.toggle('off', muted); $('bMus').classList.toggle('off', !musOn); }
+$('bSnd').onclick = () => { muted = !muted; try { localStorage.setItem('bigtwo_snd', muted ? '0' : '1'); } catch (e) {} sndUI(); audio(); };
+$('bMus').onclick = () => { musOn = !musOn; try { localStorage.setItem('bigtwo_music', musOn ? '1' : '0'); } catch (e) {} sndUI(); musOn ? musicStart() : musicStop(); };
+addEventListener('pointerdown', () => musicStart(), true);
+document.addEventListener('visibilitychange', () => { if (document.hidden) musicStop(); else if (ac) musicStart(); });
+function fitSnd() {
+  const root = document.documentElement; root.style.setProperty('--sb', '0px'); const box = $('sndBox').getBoundingClientRect();
+  const hit = [...document.querySelectorAll('#score,#top .op,#pLogo h1,#setup h1')].some(e => { const r = e.getBoundingClientRect(); return r.width && r.right > box.left - 6 && r.top < box.bottom + 6 && r.bottom > box.top && r.left < box.right; });
+  if (hit) root.style.setProperty('--sb', (box.bottom + 4) + 'px');
+}
+
+// ---------- 首頁廣告影片：四位電腦實際對打 ----------
+const CAPS = ['🃏 2 最大、3 最小，先出完手牌就贏！', '💣 鐵支、同花順可以壓過任何牌型', '👥 2～4 人對戰，牌組份數自己選', '🏆 先贏幾局或先得幾分，比賽模式自由設'];
+let capI = 0, capT = null;
+function pCap(t) { $('pCap').innerHTML = '<span class="cp">' + [...t].map((ch, i) => `<span style="animation-delay:${i * .03}s">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('') + '</span>'; }
+function demoStart() { const keep = { ...cfg }; demo = true; cfg = { n: 4, p: 4, m: 'wins', t: 99, tr: true }; newMatch(); start(); cfg = keep; fitSnd(); }
+function showPromo() { document.body.classList.add('promo'); $('end').classList.add('hide'); capI = 0; pCap(CAPS[capI++]); clearInterval(capT); capT = setInterval(() => pCap(CAPS[capI++ % CAPS.length]), 5200); demoStart(); }
+function leavePromo() { demo = false; G = null; clearInterval(capT); document.body.classList.remove('promo'); $('game').classList.add('hide'); $('setup').classList.remove('hide'); sync(); fitSnd(); }
+$('pStart').onclick = () => { musicStart(); leavePromo(); };
+$('pRules').onclick = () => { $('rulesBox').innerHTML = '<h1 style="font-size:24px">📖 規則說明</h1>' + document.querySelector('#setup details p').outerHTML + '<p style="text-align:center;margin:14px 0 0"><button class="b p" id="rOk">知道了</button></p>'; $('rulesOv').classList.remove('hide'); $('rOk').onclick = () => $('rulesOv').classList.add('hide'); };
+$('rulesOv').onclick = e => { if (e.target.id === 'rulesOv') $('rulesOv').classList.add('hide'); };
+sndUI(); sync(); showPromo(); fitSnd();
 </script>
 </body>
 </html>
