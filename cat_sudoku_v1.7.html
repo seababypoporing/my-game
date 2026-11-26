@@ -5,28 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>喵喵領地 — 貓咪邏輯謎題</title>
 <style>
-  :root { --bg:#f6f1e7; --card:#fffdf8; --fg:#2a2622; --muted:#7a7268; --rule:#ddd3c2; --line:#3b342c; --accent:#e07a3f; --accent-fg:#fff; color-scheme: light dark; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#17151a; --card:#211e26; --fg:#efe9df; --muted:#a39b90; --rule:#38333f; --line:#0d0c10; --accent:#f0914f; --accent-fg:#1b1208; } }
-  :root[data-theme="dark"] { --bg:#17151a; --card:#211e26; --fg:#efe9df; --muted:#a39b90; --rule:#38333f; --line:#0d0c10; --accent:#f0914f; --accent-fg:#1b1208; }
+  :root { --bg:#fde8d4; --card:#fffaf3; --fg:#4a3326; --muted:#8a6d5a; --rule:#efcfb4; --line:#5a3b2a; --accent:#f08a4b; --accent-fg:#fff; color-scheme: light; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--fg); font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; }
-  body { padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 28px); display:flex; justify-content:center; }
+  html, body { margin:0; min-height:100%; background:radial-gradient(circle at 20% 10%,#fff3e6 0,transparent 40%),radial-gradient(circle at 85% 90%,#ffd9c0 0,transparent 45%),linear-gradient(180deg,#fde8d4,#f9d2bb) fixed; color:var(--fg); font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; }
+  body { padding:calc(env(safe-area-inset-top,0px) + 18px + var(--sb,0px)) 14px calc(env(safe-area-inset-bottom,0px) + 28px); display:flex; justify-content:center; }
   main { width:100%; max-width:540px; }
-  h1 { margin:0; font-size:1.5rem; }
+  h1 { margin:0; font-size:1.6rem; color:#c8602a; text-shadow:0 2px 0 #fff; }
   .rules { margin:6px 0 14px; color:var(--muted); font-size:.86rem; line-height:1.55; }
   .rules .ri { display:flex; gap:8px; align-items:flex-start; padding:3px 0; } .rules .ic { flex:none; width:1.6em; text-align:center; font-size:1.05rem; line-height:1.4; }
   .rules b { color:var(--fg); } .rules .m { font-weight:800; font-size:1rem; }
   .seg { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
   .opt { display:flex; align-items:center; gap:8px; margin:0 2px 12px; font-size:.9rem; cursor:pointer; width:fit-content; }
   .opt input { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
-  .seg button, .tool, .mode button { border:1px solid var(--rule); background:var(--card); color:var(--fg); border-radius:10px; padding:8px 12px; font-size:.88rem; cursor:pointer; font-family:inherit; }
+  .seg button, .tool, .mode button { border:2px solid var(--rule); background:var(--card); color:var(--fg); border-radius:14px; padding:8px 12px; font-size:.88rem; cursor:pointer; font-family:inherit; font-weight:700; box-shadow:0 3px 0 var(--rule); transition:transform .1s; }
+  .seg button:active, .tool:active, .mode button:active { transform:translateY(2px); box-shadow:0 1px 0 var(--rule); }
   .seg button.on, .mode button.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:700; }
   .bar { display:flex; justify-content:space-between; align-items:center; margin:4px 2px 10px; font-weight:700; }
   #hearts { letter-spacing:2px; } #time { color:var(--muted); font-variant-numeric:tabular-nums; font-weight:500; }
   .cc { font-weight:700; font-size:1.1rem; display:flex; align-items:center; gap:6px; } .cc b { color:var(--accent); font-variant-numeric:tabular-nums; display:inline-block; }
   .cc b.bump { animation:bump .45s; } @keyframes bump { 50% { transform:scale(1.45); } }
   .rt { display:flex; align-items:center; gap:8px; }
-  .board { --n:6; position:relative; width:var(--bs,320px); height:var(--bs,320px); margin:0 auto; display:grid; grid-template-columns:repeat(var(--n),minmax(0,1fr)); grid-template-rows:repeat(var(--n),minmax(0,1fr)); border:3px solid var(--line); border-radius:6px; overflow:hidden; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation; }
+  .board { --n:6; position:relative; width:var(--bs,320px); height:var(--bs,320px); margin:0 auto; display:grid; grid-template-columns:repeat(var(--n),minmax(0,1fr)); grid-template-rows:repeat(var(--n),minmax(0,1fr)); border:4px solid var(--line); border-radius:10px; box-shadow:0 10px 28px rgba(120,60,30,.28); overflow:hidden; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation; }
   .cell { min-width:0; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:calc(var(--bs,320px) / var(--n) * .58); line-height:1; cursor:pointer; color:#3a342c; border-style:solid; border-color:var(--line); }
   .cell .x { font-size:.6em; opacity:.45; font-weight:700; } .cell .dot { font-size:.35em; opacity:.3; }
   .cell.shake { animation:shake .35s; } .cell.hint { animation:pop .5s; }
@@ -51,27 +50,55 @@
   .tools { display:flex; gap:8px; flex-wrap:wrap; } .tool { flex:1; min-width:84px; } .tool:disabled { opacity:.4; cursor:default; }
   .msg { min-height:1.4em; margin-top:10px; text-align:center; color:var(--muted); font-size:.88rem; }
   #ov { position:fixed; top:0; left:0; right:0; bottom:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); padding:20px; z-index:5; }
-  #ov .box { background:var(--card); border:1px solid var(--rule); border-radius:16px; padding:26px 24px; text-align:center; max-width:340px; width:100%; }
+  #ov .box { background:var(--card); border:3px solid var(--accent); border-radius:20px; box-shadow:0 14px 40px rgba(0,0,0,.35); padding:26px 24px; text-align:center; max-width:340px; width:100%; }
   #ov h2 { margin:0 0 6px; font-size:1.5rem; } #ov p { margin:4px 0 18px; color:var(--muted); line-height:1.6; }
   #ov .row { display:flex; gap:8px; } #ov .row button { flex:1; padding:12px; border-radius:10px; border:1px solid var(--rule); background:var(--card); color:var(--fg); font-size:.95rem; cursor:pointer; font-family:inherit; }
   #ov .row button.p { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:700; }
   .hd { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   #rulesBtn { flex:none; min-width:0; padding:6px 12px; }
-  #rulesPg { position:fixed; top:0; left:0; right:0; bottom:0; display:none; background:var(--bg); z-index:6; overflow-y:auto; padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 28px); }
+  #rulesPg { position:fixed; top:0; left:0; right:0; bottom:0; display:none; background:linear-gradient(180deg,#fde8d4,#f9d2bb); z-index:10; overflow-y:auto; padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 28px); }
   #rulesPg.on { display:flex; justify-content:center; }
   #rulesPg .in { width:100%; max-width:540px; }
   #rulesPg .rules { font-size:1rem; margin:14px 0 20px; } #rulesPg .rules .ri { padding:8px 0; border-bottom:1px solid var(--rule); }
   #rulesBack { width:100%; padding:12px; border-radius:10px; border:1px solid var(--accent); background:var(--accent); color:var(--accent-fg); font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
   button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  /* 右上角的音樂／音效大按鈕（各款遊戲統一） */
+  #sndBox { position:fixed; right:max(12px,env(safe-area-inset-right)); top:max(12px,env(safe-area-inset-top)); z-index:20; display:flex; gap:10px; }
+  #sndBox button { width:54px; height:54px; padding:0; border-radius:50%; font-size:28px; line-height:50px; cursor:pointer; background:var(--card); border:3px solid var(--accent); box-shadow:0 4px 12px rgba(120,60,30,.3); }
+  #sndBox button.off { filter:grayscale(1); opacity:.5; }
+  /* v1.7 首頁：背景是貓咪自動找領地的廣告影片 */
+  body.promo .hd, body.promo .opt, body.promo #sizes, body.promo .bar, body.promo #modes, body.promo .tools, body.promo .msg { visibility:hidden; }
+  body.promo .board { position:fixed; left:50%; top:var(--pt,0px); margin:0; transform:translateX(-50%); z-index:3; }
+  #promo { position:fixed; inset:0; z-index:4; display:none; flex-direction:column; align-items:center; justify-content:space-between; pointer-events:none;
+    padding:calc(env(safe-area-inset-top,0px) + 10px + var(--sb,0px)) 12px calc(env(safe-area-inset-bottom,0px) + 16px); }
+  body.promo #promo { display:flex; }
+  #pLogo { text-align:center; }
+  #pLogo h2 { margin:0; font-size:clamp(42px,min(12vw,11vmin),72px); font-weight:900; color:#f08a4b; letter-spacing:4px; text-shadow:0 4px 0 #fff,0 7px 0 #e0a07a,0 10px 20px rgba(120,60,30,.3); white-space:nowrap; }
+  #pLogo h2 span { display:inline-block; animation:paw 1.6s ease-in-out infinite; }
+  @keyframes paw { 0%,100% { transform:rotate(-12deg); } 50% { transform:rotate(12deg) translateY(-5px); } }
+  #pLogo .en { color:#a5674a; font-weight:800; letter-spacing:.3em; font-size:.78rem; }
+  #pCap { min-height:38px; margin-top:6px; text-align:center; }
+  #pCap .cp { display:inline-block; background:var(--card); border:3px solid var(--accent); border-radius:999px; padding:5px 16px; font-weight:800; font-size:15px; color:var(--fg); box-shadow:0 4px 12px rgba(120,60,30,.25); }
+  #pCap .cp span { display:inline-block; opacity:0; animation:pIn .35s cubic-bezier(.3,1.8,.5,1) forwards; }
+  @keyframes pIn { 0% { opacity:0; transform:translateY(10px) scale(.4); } 100% { opacity:1; transform:none; } }
+  #pBtns { display:flex; gap:10px; pointer-events:auto; width:min(92vw,400px); }
+  #pBtns button { flex:1; border:2px solid var(--rule); background:var(--card); color:var(--fg); border-radius:16px; padding:12px; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit; box-shadow:0 4px 0 var(--rule); }
+  #pBtns button.p { flex:2; background:linear-gradient(#ffa86b,#ec7434); color:#fff; border-color:#d9622a; box-shadow:0 4px 0 #b84e1c; font-size:1.2rem; animation:pPulse 1.5s ease-in-out infinite; }
+  @keyframes pPulse { 50% { transform:scale(1.05); } }
 </style>
 </head>
 <body>
+<div id="sndBox"><button id="bMus" aria-label="背景音樂開關">🎵</button><button id="bSnd" aria-label="音效開關">🔊</button></div>
+<div id="promo">
+  <div><div id="pLogo"><h2><span>🐾</span>喵喵領地</h2><div class="en">MEOW TERRITORY ・ v1.7</div></div><div id="pCap"></div></div>
+  <div id="pBtns"><button id="pRules">📖 規則</button><button class="p" id="pStart">▶ 開始遊戲</button></div>
+</div>
 <main>
   <div class="hd"><h1>🐾 喵喵領地</h1><button class="tool" id="rulesBtn">📖 遊戲規則</button></div>
   <label class="opt"><input type="checkbox" id="elimTog"> 💡 顯示位置提示(標出被貓排除的格子)</label>
   <label class="opt"><input type="checkbox" id="regTog" checked> 🟨 已放對貓的色塊標示黃色粗框</label>
   <div class="seg" id="sizes"></div>
-  <div class="bar"><span id="hearts"></span><span class="cc"><span>🐱</span><b id="cats">0/6</b></span><span class="rt"><button id="snd" class="tool" style="flex:none;min-width:0;padding:4px 10px" title="音效">🔊</button><span id="time">00:00</span></span></div>
+  <div class="bar"><span id="hearts"></span><span class="cc"><span>🐱</span><b id="cats">0/6</b></span><span class="rt"><span id="time">00:00</span></span></div>
   <div class="board" id="board"></div>
   <div class="mode" id="modes"><div class="mg"><span class="mgl">標記</span><div class="mgb"><button data-m="3"></button><button data-m="1"></button><button data-m="4"></button><button data-m="5"></button></div></div></div>
   <div class="tools">
@@ -304,7 +331,9 @@ function elapsedStr() { return $('time').textContent; }
 function snap() { hist.push(S.map(r => r.slice())); if (hist.length > 200) hist.shift(); }
 
 function fitBoard() { // 不依賴 CSS aspect-ratio(舊版 iPhone 不支援),用程式算出棋盤大小
-  const b = $('board'), w = Math.min(b.parentElement.clientWidth || 320, 520);
+  const b = $('board'); let w = Math.min(b.parentElement.clientWidth || 320, 520);
+  if (demo && $('pCap')) { const top = $('pCap').getBoundingClientRect().bottom + 10, bot = $('pBtns').getBoundingClientRect().top - 10;   // 首頁：棋盤固定在字卡和按鈕中間
+    w = Math.max(140, Math.min(innerWidth - 24, 520, bot - top)); document.documentElement.style.setProperty('--pt', (top + Math.max(0, (bot - top - w) / 2)) + 'px'); }
   b.style.setProperty('--bs', w + 'px');
 }
 addEventListener('resize', fitBoard);
@@ -336,7 +365,7 @@ function render(flash) {
   if (nc > lastCats) { ce.classList.remove('bump'); void ce.offsetWidth; ce.classList.add('bump'); } lastCats = nc;
   $('hl').textContent = hints; $('hint').disabled = hints <= 0 || over; $('undo').disabled = !hist.length || over;
 }
-let sndOn = true, actx = null, showElim = false, showWave = true, showReg = true, lastCats = 0;
+let demo = false, sndOn = true, actx = null, showElim = false, showWave = true, showReg = true, lastCats = 0;
 // 四組標記(PS 手把符號):3=○ 紅、1=✕ 藍、4=△ 綠、5=□ 粉
 const MK = {
   3: '<svg viewBox="0 0 24 24" class="mk"><circle cx="12" cy="12" r="8" fill="none" stroke="#d93a3a" stroke-width="3"/></svg>',
@@ -353,7 +382,7 @@ document.querySelectorAll('#modes button').forEach(b => {
 $('regTog').onchange = e => { showReg = e.target.checked; render(); };
 $('elimTog').onchange = e => { showElim = e.target.checked; render(); };
 function meow() {
-  if (!sndOn) return;
+  if (!sndOn || demo) return;
   try {
     const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
     const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
@@ -363,10 +392,9 @@ function meow() {
     o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .36);
   } catch (e) {}
 }
-$('snd').onclick = () => { sndOn = !sndOn; $('snd').textContent = sndOn ? '🔊' : '🔇'; if (sndOn) meow(); };
 function buzz() { // 放錯:低沉的「巴巴」兩聲
   if (navigator.vibrate) { try { navigator.vibrate([70, 50, 70]); } catch (e) {} }
-  if (!sndOn) return;
+  if (!sndOn || demo) return;
   try {
     const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
     [0, 0.19].forEach(off => {
@@ -387,7 +415,7 @@ function burst(x, y, n, icons, spread) {
   }
 }
 function fx(r, c) { // 貓放對時:喵叫聲、震動、漣漪、星星粒子
-  meow(); if (navigator.vibrate) { try { navigator.vibrate(18); } catch (e) {} }
+  meow(); if (navigator.vibrate && !demo) { try { navigator.vibrate(18); } catch (e) {} }
   const cells = $('board').children, id = region[r][c];
   for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++) {
     if (!showWave || (rr === r && cc === c)) continue;
@@ -400,7 +428,7 @@ function fx(r, c) { // 貓放對時:喵叫聲、震動、漣漪、星星粒子
   burst(b.left + b.width / 2, b.top + b.height / 2, 9, ['✨', '⭐', '💛', '🐾'], Math.max(40, b.width * 1.4));
 }
 function fanfare() { // 過關歡呼配樂:歡快的號角旋律 + 掌聲
-  if (!sndOn) return;
+  if (!sndOn || demo) return;
   try {
     const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume();
     const t0 = c.currentTime + 0.05;
@@ -451,7 +479,7 @@ function introSchedule(c) {
   setTimeout(meow, 800); // 最後來一聲貓叫
 }
 function playIntro() {
-  if (!sndOn) return;
+  if (!sndOn || demo) return;
   try {
     const c = actx || (actx = new (window.AudioContext || window.webkitAudioContext)());
     if (c.state === 'running') { introSchedule(c); return; }
@@ -555,6 +583,7 @@ function dragEnd() {
   drag = null; render();
 }
 $('board').addEventListener('pointerdown', e => {
+  if (demo) return;
   if (over || (e.pointerType === 'mouse' && e.button !== 0)) return;
   const d = e.target.closest ? e.target.closest('.cell') : null; if (!d) return;
   e.preventDefault();
@@ -588,7 +617,87 @@ $('ovr').onclick = resetState;
 $('ovn').onclick = () => newGame(N, false);
 function updSizes() { document.querySelectorAll('#sizes button').forEach(b => b.classList.toggle('on', +b.dataset.n === N && !isDaily)); }
 SIZES.forEach(n => { const b = document.createElement('button'); b.dataset.n = n; b.textContent = `${n}×${n}`; b.onclick = () => { newGame(n, false); updSizes(); }; $('sizes').appendChild(b); });
-newGame(6, false); updSizes();
+
+// ---------- 背景音樂：陶笛小夜曲「貓咪午睡」----------
+// E♭ 大調、92 BPM：陶笛旋律（正弦＋氣音）＋撥弦小提琴伴奏（pizzicato）＋大提琴撥弦低音＋彈指，第二輪加陶笛和聲
+let musOn = true; try { musOn = localStorage.getItem('meow_music') !== '0'; sndOn = localStorage.getItem('meow_snd') !== '0'; } catch (e) {}
+const MU = { timer: null, bus: null, next: 0, step: 0, nb: null };
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+const OC_CH = [[39, [63, 67, 70]], [36, [63, 67, 72]], [41, [65, 68, 72]], [46, [62, 65, 70]], [39, [63, 67, 70]], [44, [63, 68, 72]], [46, [62, 65, 68]], [39, [63, 67, 70]]];
+const OC_MEL = [[79, 0, 0, 80, 79, 0, 75, 0], [72, 0, 0, 0, 75, 0, 0, 0], [77, 0, 0, 79, 80, 0, 77, 0], [74, 0, 0, 0, 0, 0, 70, 0], [75, 0, 77, 0, 79, 0, 82, 0], [80, 0, 0, 79, 77, 0, 75, 0], [74, 0, 75, 0, 77, 0, 74, 0], [75, 0, 0, 0, 0, 0, 0, 0]];
+function nbuf() { if (!MU.nb) { MU.nb = actx.createBuffer(1, actx.sampleRate, actx.sampleRate); const d = MU.nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } return MU.nb; }
+function ocarina(m, t, d, v) {   // 陶笛：純正弦＋一點三倍泛音＋吹氣的沙沙聲，輕微顫音
+  const c = actx, g = c.createGain(), o = c.createOscillator(), o3 = c.createOscillator(), g3 = c.createGain(), l = c.createOscillator(), lg = c.createGain();
+  o.frequency.value = mf(m); o3.frequency.value = mf(m) * 3; g3.gain.value = .06; l.frequency.value = 4.8; lg.gain.value = mf(m) * .008; l.connect(lg); lg.connect(o.frequency);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .06); g.gain.setValueAtTime(v * .85, t + d * .7); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g); o3.connect(g3); g3.connect(g); g.connect(MU.bus);
+  const ns = c.createBufferSource(), nf = c.createBiquadFilter(), ng = c.createGain(); ns.buffer = nbuf(); nf.type = 'bandpass'; nf.frequency.value = mf(m) * 2; nf.Q.value = 3;
+  ng.gain.setValueAtTime(.0001, t); ng.gain.exponentialRampToValueAtTime(v * .25, t + .03); ng.gain.exponentialRampToValueAtTime(.0001, t + .25); ns.connect(nf); nf.connect(ng); ng.connect(MU.bus);
+  [o, o3, l].forEach(x => { x.start(t); x.stop(t + d + .05); }); ns.start(t, Math.random() * .5); ns.stop(t + .3);
+}
+function pizz(m, t, v, dur) { const c = actx, o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = mf(m); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(2400, t); lp.frequency.exponentialRampToValueAtTime(300, t + .12); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + (dur || .22));
+  o.connect(lp); lp.connect(g); g.connect(MU.bus); o.start(t); o.stop(t + (dur || .22) + .03); }
+function snap2(t) { const c = actx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = nbuf(); f.type = 'bandpass'; f.frequency.value = 2600; f.Q.value = 4;
+  g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.0001, t + .05); s.connect(f); f.connect(g); g.connect(MU.bus); s.start(t, Math.random() * .5); s.stop(t + .06); }
+function musicTick() {
+  if (!actx || !MU.bus) return; const E8 = 60 / 92 / 2;
+  if (MU.next < actx.currentTime) MU.next = actx.currentTime + .05;
+  while (MU.next < actx.currentTime + .2) {
+    const t = MU.next, st = MU.step % 64, bar = st >> 3, i8 = st % 8, [root, ch] = OC_CH[bar];
+    if (i8 === 0 || i8 === 4) pizz(root - 12 + (i8 === 4 ? 7 : 0), t, .2, .35);
+    if (i8 === 2 || i8 === 6) ch.forEach((n, k) => pizz(n, t + k * .01, .045));
+    if (i8 === 3 || i8 === 7) pizz(ch[(bar + i8) % 3] + 12, t, .03);
+    if (i8 === 2 || i8 === 6) snap2(t);
+    const n = OC_MEL[bar][i8]; if (n) { const d = E8 * (OC_MEL[bar][i8 + 1] === 0 ? (OC_MEL[bar][i8 + 2] === 0 ? 2.8 : 1.8) : .9); ocarina(n, t, d, .09); if (MU.step >= 64) ocarina(n - 4, t, d, .04); }
+    MU.next += E8; MU.step++;
+  }
+}
+function musicStart(delay) { if (!musOn || MU.timer) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { return; }
+  if (!MU.bus) { MU.bus = actx.createGain(); MU.bus.connect(actx.destination); }
+  const t = actx.currentTime + (delay || 0); MU.bus.gain.cancelScheduledValues(actx.currentTime); MU.bus.gain.setValueAtTime(0, actx.currentTime); MU.bus.gain.setValueAtTime(0, t); MU.bus.gain.linearRampToValueAtTime(.6, t + 1.2);
+  MU.step = 0; MU.next = t + .1; MU.timer = setInterval(musicTick, 50); musicTick(); }
+function musicStop() { if (!MU.timer) return; clearInterval(MU.timer); MU.timer = null; if (MU.bus) MU.bus.gain.setTargetAtTime(0, actx.currentTime, .12); }
+function sndUI() { $('bSnd').textContent = sndOn ? '🔊' : '🔇'; $('bSnd').classList.toggle('off', !sndOn); $('bMus').classList.toggle('off', !musOn); }
+$('bSnd').onclick = () => { sndOn = !sndOn; try { localStorage.setItem('meow_snd', sndOn ? '1' : '0'); } catch (e) {} sndUI(); if (sndOn && !demo) meow(); };
+$('bMus').onclick = () => { musOn = !musOn; try { localStorage.setItem('meow_music', musOn ? '1' : '0'); } catch (e) {} sndUI(); musOn ? musicStart() : musicStop(); };
+addEventListener('pointerdown', () => musicStart(demo ? 0 : 1.4), true);
+document.addEventListener('visibilitychange', () => { if (document.hidden) musicStop(); else if (actx) musicStart(); });
+function fitSnd() {
+  const root = document.documentElement; root.style.setProperty('--sb', '0px'); const box = $('sndBox').getBoundingClientRect();
+  const hit = [...document.querySelectorAll('.hd h1,#rulesBtn,#pLogo h2,.opt')].some(e => { const r = e.getBoundingClientRect(); return r.width && r.right > box.left - 6 && r.top < box.bottom + 6 && r.bottom > box.top && r.left < box.right; });
+  if (hit) root.style.setProperty('--sb', (box.bottom + 2) + 'px'); fitBoard();
+}
+addEventListener('resize', fitSnd);
+
+// ---------- 首頁廣告影片：電腦自動解題，貓咪一隻隻找到領地 ----------
+const CAPS = ['🐱 每一列、每一行、每個色塊各放 1 隻貓', '🚫 貓咪不能相鄰，斜角也不行', '✕ 標記排除的格子，推理出貓的位置', '📅 5×5 到 14×14，還有每日挑戰'];
+let capI = 0, capT = null, demoId = 0;
+const dwait = ms => new Promise(r => setTimeout(r, ms));
+function pCap(t) { $('pCap').innerHTML = '<span class="cp">' + [...t].map((ch, i) => `<span style="animation-delay:${i * .03}s">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('') + '</span>'; }
+async function demoRun(id) {
+  let k = 0;
+  while (id === demoId) {
+    N = [6, 7, 6, 8][k++ % 4]; isDaily = false; seedUsed = (Math.random() * 1e9) | 0; loadPuzzle(seedUsed);
+    while (busy) { await dwait(100); if (id !== demoId) return; }
+    fitSnd(); await dwait(800); if (id !== demoId) return;
+    const rows = [...Array(N).keys()].sort(() => Math.random() - .5);
+    for (const r of rows) {
+      S[r][sol[r]] = 2; render({ r, c: sol[r], type: 'catpop' }); fx(r, sol[r]); await dwait(450); if (id !== demoId) return;
+      const el = eliminated(), todo = []; for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++) if (el[rr][cc] && S[rr][cc] === 0) todo.push([rr, cc]);
+      for (let i = 0; i < todo.length; i += 3) { todo.slice(i, i + 3).forEach(([rr, cc]) => S[rr][cc] = 1); render(); await dwait(40); if (id !== demoId) return; }
+      await dwait(250); if (id !== demoId) return;
+    }
+    over = true; clearInterval(timer); celebrate(); pCap('🎉 每隻貓都找到自己的領地了！');
+    await dwait(3400); if (id !== demoId) return;
+    pCap(CAPS[capI++ % CAPS.length]);
+  }
+}
+function showPromo() { demo = true; demoId++; document.body.classList.add('promo'); $('ov').style.display = 'none'; capI = 0; pCap(CAPS[capI++]); clearInterval(capT); capT = setInterval(() => pCap(CAPS[capI++ % CAPS.length]), 5200); fitSnd(); demoRun(demoId); }
+function leavePromo() { demo = false; demoId++; genTok++; clearInterval(capT); document.body.classList.remove('promo'); document.documentElement.style.setProperty('--pt', '0px'); fitSnd(); newGame(6, false); updSizes(); }
+$('pStart').onclick = () => { musicStart(1.4); leavePromo(); };
+$('pRules').onclick = () => { $('rulesPg').classList.add('on'); $('rulesPg').scrollTop = 0; };
+sndUI(); updSizes(); showPromo();
 </script>
 </body>
 </html>
