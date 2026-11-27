@@ -43,59 +43,88 @@
   #left { position:absolute; top:calc(env(safe-area-inset-top,0px) + 40px); right:14px; text-align:right; font-weight:700; font-size:.95rem; line-height:1.45; text-shadow:0 2px 6px #000; pointer-events:none; }
   #left b { color:#ffd60a; font-variant-numeric:tabular-nums; }
   html, body { touch-action:none; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
-  #mute { position:absolute; top:calc(env(safe-area-inset-top,0px) + 40px); left:12px; width:42px; height:42px; border-radius:50%; border:1px solid #3a4070; background:rgba(20,24,52,.7); color:#f4f1de; font-size:1.1rem; }
+  /* v0.1：右上角固定圓形大按鈕 🎵 音樂 / 🔊 音效（關閉時變灰） */
+  #sndBox { position:fixed; top:calc(env(safe-area-inset-top,0px) + 8px); right:10px; display:flex; gap:8px; z-index:50; }
+  #sndBox button { width:50px; height:50px; border-radius:50%; border:2px solid #ffd60a; background:rgba(20,24,52,.85); font-size:1.45rem; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,.5); touch-action:manipulation; padding:0; transition:filter .2s, opacity .2s; }
+  #sndBox button.off { filter:grayscale(1); opacity:.45; border-color:#777; }
+  #hud { right:132px; flex-wrap:wrap; gap:2px 14px; }
+  #left { top:calc(env(safe-area-inset-top,0px) + 66px); }
+  #pad .slow { width:58px; height:58px; border-radius:50%; background:rgba(60,200,230,.85); color:#fff; font-size:1.4rem; border:none; pointer-events:auto; }
+  /* v0.1：首頁廣告影片（背景是自動遊玩的真實遊戲畫面） */
+  body.promo #hud, body.promo #left, body.promo #pad, body.promo #banner { visibility:hidden; }
+  body.promo #overlay { background:linear-gradient(180deg, rgba(5,6,15,.82) 0%, rgba(5,6,15,.15) 30%, rgba(5,6,15,.1) 62%, rgba(5,6,15,.85) 100%); justify-content:space-between; padding:calc(env(safe-area-inset-top,0px) + 66px) 18px calc(env(safe-area-inset-bottom,0px) + 22px); }
+  #pmTop, #pmBot { display:none; flex-direction:column; align-items:center; gap:10px; }
+  body.promo #pmTop, body.promo #pmBot { display:flex; }
+  body.promo #ot, body.promo #om, body.promo #howto, body.promo #og { display:none; }
+  #pmLogo { font-size:clamp(2.4rem,10vw,4.2rem); font-weight:900; color:#ffd60a; letter-spacing:.06em; text-shadow:0 0 18px rgba(255,214,10,.65), 0 4px 0 #8a5a00, 0 8px 22px #000; animation:pmBob 2.4s ease-in-out infinite; }
+  @keyframes pmBob { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-6px) scale(1.03); } }
+  #pmCap { min-height:2.2em; padding:7px 18px; border-radius:999px; background:rgba(20,24,52,.78); border:1px solid #ffd60a88; color:#fff; font-weight:800; font-size:clamp(.95rem,4vw,1.2rem); box-shadow:0 4px 16px rgba(0,0,0,.5); }
+  #pmCap span { display:inline-block; opacity:0; animation:pmCh .45s ease-out forwards; }
+  @keyframes pmCh { from { opacity:0; transform:translateY(10px) scale(.6); } to { opacity:1; transform:none; } }
+  #pmRules { max-width:520px; font-size:.85rem; line-height:1.55; color:#d6d9f0; background:rgba(5,6,15,.62); border:1px solid #3a4070; border-radius:14px; padding:8px 14px; }
+  #pmGo { padding:14px 34px; border-radius:999px; background:#ffd60a; color:#111; font-weight:900; font-size:1.2rem; box-shadow:0 0 0 0 rgba(255,214,10,.7); animation:pmPulse 1.6s infinite; }
+  #howto { display:none; }
+  @media (max-height:520px) { #pmLogo { font-size:2rem; } #pmRules { display:none; } body.promo #overlay { padding-top:calc(env(safe-area-inset-top,0px) + 10px); padding-bottom:12px; } #pmGo { padding:10px 28px; font-size:1.05rem; } }
+  @media (max-width:520px) { #pmRules { font-size:.74rem; padding:6px 10px; } }
+  @keyframes pmPulse { 0% { box-shadow:0 0 0 0 rgba(255,214,10,.6); } 70% { box-shadow:0 0 0 18px rgba(255,214,10,0); } 100% { box-shadow:0 0 0 0 rgba(255,214,10,0); } }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <div id="hud"><span>分數 <b id="score">0</b></span><span>第 <b id="lv">1</b> 關<b id="fl"></b></span><span>🪙 <b id="coins">0</b> ⚡<b id="gods">0</b></span><span>生命 <b id="lives">❤❤❤</b></span></div>
+  <div id="hud"><span>分數 <b id="score">0</b></span><span>第 <b id="lv">1</b> 關<b id="fl"></b></span><span>🪙 <b id="coins">0</b> ⚡<b id="gods">0</b> 🐢<b id="slows">0</b></span><span>生命 <b id="lives">❤❤❤</b></span></div>
   <div id="banner"></div>
   <div id="toast"></div>
   <div id="left"></div>
-  <button id="mute" aria-label="音效">🔊</button>
   <div id="overlay">
+    <div id="pmTop"><div id="pmLogo">3D 小精靈</div><div id="pmCap"></div></div>
     <h1 id="ot">3D 小精靈</h1>
     <p id="om">方向鍵 / WASD 移動 ・ <b>空白鍵</b> 跳起來閃過鬼</p>
-    <p>吃光所有豆子就過關,共 5 個不同場景,第 N 關有 N 層樓,走到金色圓圈的樓梯就能上下樓;吃大力丸後吃鬼可得 🪙10 元,過關後到商店買愛心或無敵道具(按 <b>E</b> 使用無敵)</p>
-    <p>📱 手機/平板:在畫面上<b>滑動</b>移動、<b>輕點</b>跳躍,也可用左下方向鍵、右下「跳!」和 ⚡ 鈕</p>
+    <p id="howto">吃光所有豆子就過關,共 5 個不同場景,第 N 關有 N 層樓;撿到 ⏳ 沙漏可讓鬼變慢</p>
     <div class="go" id="og">點擊或按任意鍵開始</div>
+    <div id="pmBot">
+      <div id="pmRules">方向鍵 / WASD 移動・<b>空白鍵</b>跳過鬼・吃光豆子過關<br>第 N 關有 N 層樓,走到金色圓圈的樓梯上下樓;迷宮左右延伸,鏡頭會跟著走<br>撿到 ⏳ 沙漏 → 鬼變慢 7 秒;吃大力丸後吃鬼得 🪙10 元<br>過關後到商店買 ❤️ 愛心、⚡ 無敵(<b>E</b>)、🐢 減速(<b>Q</b>)<br>📱 滑動移動、輕點跳躍,或用畫面按鈕</div>
+      <div id="pmGo">▶ 開始遊戲</div>
+    </div>
   </div>
   <div id="pad">
     <div class="grp"><span></span><button data-d="u">▲</button><span></span><button data-d="l">◀</button><button data-d="d">▼</button><button data-d="r">▶</button></div>
-    <div class="rb"><button class="god" id="gbtn">⚡</button><button class="jump" id="jbtn">跳!</button></div>
+    <div class="rb"><button class="slow" id="sbtn">🐢</button><button class="god" id="gbtn">⚡</button><button class="jump" id="jbtn">跳!</button></div>
   </div>
 </div>
+<div id="sndBox"><button id="bMus" aria-label="音樂">🎵</button><button id="bSfx" aria-label="音效">🔊</button></div>
 <script>
 const MAP0 = [
 "111111111111111","120000010000021","101110101011101","100000000000001","101011101110101",
 "100010000010001","111010111010111","100000030000001","111010111010111","100010000010001",
 "101011101110101","100000000000001","101110101011101","120000010000021","111111111111111"];
-const W = 15, H = 15, OFF = 7;
+let W = 15, H = 15, OFF = 7, CX = 7; const OFFZ = 7;   // v0.1：地圖寬度依關卡加寬（左右可延伸），高度固定 15 格
+function setDims(w) { W = w; OFF = (w - 1) / 2; CX = OFF; }
 let FL = [MAP0]; // 目前這一關每一層樓的地圖
 const open = (x, z, f = 0) => x >= 0 && z >= 0 && x < W && z < H && FL[f][z][x] !== '1';
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
-const wx = x => x - OFF, wz = z => z - OFF;
+const wx = x => x - OFF, wz = z => z - OFFZ;
 let MAP = MAP0;
 function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function genMaze(seed) { // 隨機迷宮:先挖出一條相通的路,再打通幾道牆做出可以繞圈逃跑的路線
-  const r = rng(seed), g = Array.from({ length: 15 }, () => Array(15).fill('1')), stack = [[1, 1]]; g[1][1] = '0';
+  const r = rng(seed), g = Array.from({ length: H }, () => Array(W).fill('1')), stack = [[1, 1]]; g[1][1] = '0';
   while (stack.length) {
     const [x, z] = stack[stack.length - 1];
-    const nb = [[2, 0], [-2, 0], [0, 2], [0, -2]].filter(([dx, dz]) => { const a = x + dx, b = z + dz; return a > 0 && b > 0 && a < 14 && b < 14 && g[b][a] === '1'; });
+    const nb = [[2, 0], [-2, 0], [0, 2], [0, -2]].filter(([dx, dz]) => { const a = x + dx, b = z + dz; return a > 0 && b > 0 && a < W - 1 && b < H - 1 && g[b][a] === '1'; });
     if (!nb.length) { stack.pop(); continue; }
     const [dx, dz] = nb[Math.floor(r() * nb.length)];
     g[z + dz / 2][x + dx / 2] = '0'; g[z + dz][x + dx] = '0'; stack.push([x + dx, z + dz]);
   }
   const walls = [];
-  for (let z = 1; z < 14; z++) for (let x = 1; x < 14; x++) if (g[z][x] === '1' &&
+  for (let z = 1; z < H - 1; z++) for (let x = 1; x < W - 1; x++) if (g[z][x] === '1' &&
     ((x % 2 === 0 && z % 2 === 1 && g[z][x - 1] !== '1' && g[z][x + 1] !== '1') || (x % 2 === 1 && z % 2 === 0 && g[z - 1][x] !== '1' && g[z + 1][x] !== '1'))) walls.push([x, z]);
   for (let i = walls.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [walls[i], walls[j]] = [walls[j], walls[i]]; }
-  walls.slice(0, 13).forEach(([x, z]) => g[z][x] = '0');
-  [[1, 1], [13, 1], [1, 13], [13, 13]].forEach(([x, z]) => g[z][x] = '2');
-  g[7][7] = '3';
+  walls.slice(0, Math.round(13 * W / 15)).forEach(([x, z]) => g[z][x] = '0');
+  [[1, 1], [W - 2, 1], [1, 13], [W - 2, 13]].forEach(([x, z]) => g[z][x] = '2');
+  if (W >= 27) { g[7][CX - 6] = '2'; g[7][CX + 6] = '2'; }   // 寬地圖中段再多兩顆大力丸
+  g[7][CX] = '3';
   return g.map(row => row.join(''));
 }
-const GEN_H = [[3, 3], [11, 3], [3, 11], [11, 11]];
+const GEN_H = () => [[3, 3], [W - 4, 3], [3, 11], [W - 4, 11]];
 const THEMES = [
   { name: '霓虹迷宮', bg: 0x05060f, wall: 0x2a47ff, wallE: 0x0a1470, floor: 0x0b0e22, amb: 0x8890c0, deco: 'pillar', dc: 0x35e0e0 },
   { name: '熔岩洞窟', bg: 0x150604, wall: 0xd9441f, wallE: 0x5a1400, floor: 0x1f0b08, amb: 0xc08060, deco: 'cone', dc: 0xff7a1a },
@@ -104,25 +133,22 @@ const THEMES = [
   { name: '星際太空', bg: 0x07030f, wall: 0xa04dff, wallE: 0x35106a, floor: 0x0d0618, amb: 0xa090e0, deco: 'star', dc: 0xfff2b0 }
 ];
 const FH = 3.2; // 每層樓的高度
-function genLevel(nf, seed, th, ng) { // 第 N 關有 N 層樓;樓梯優先放在四個角落,3 層以上再隨機多加一座
-  const r = rng(seed * 7 + 3), floors = [], stairs = [];
-  for (let f = 0; f < nf; f++) { const m = genMaze(seed + f * 17).map(row => row.split('')); if (f > 0) m[7][7] = '0'; floors.push(m); }
-  const corners = [[1, 1], [13, 1], [1, 13], [13, 13]];
+function genLevel(nf, seed, th, ng, w) { // 第 N 關有 N 層樓;樓梯優先放在四個角落,3 層以上再隨機多加一座
+  setDims(w); const r = rng(seed * 7 + 3), floors = [], stairs = [];
+  for (let f = 0; f < nf; f++) { const m = genMaze(seed + f * 17).map(row => row.split('')); if (f > 0) m[7][CX] = '0'; floors.push(m); }
+  const corners = [[1, 1], [W - 2, 1], [1, 13], [W - 2, 13]];
   for (let i = corners.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [corners[i], corners[j]] = [corners[j], corners[i]]; }
   for (let f = 0; f < nf - 1; f++) stairs.push({ f, x: corners[f % 4][0], z: corners[f % 4][1] });
   if (nf >= 3) {
     const f = Math.floor(r() * (nf - 1)); let x, z, tries = 0;
-    do { x = 1 + 2 * Math.floor(r() * 7); z = 1 + 2 * Math.floor(r() * 7); tries++; }
-    while (tries < 60 && ((x === 7 && z === 7) || corners.concat(GEN_H).some(c => c[0] === x && c[1] === z)));
+    do { x = 1 + 2 * Math.floor(r() * OFF); z = 1 + 2 * Math.floor(r() * 7); tries++; }
+    while (tries < 60 && ((x === CX && z === 7) || corners.concat(GEN_H()).some(c => c[0] === x && c[1] === z)));
     stairs.push({ f, x, z });
   }
   stairs.forEach(s => { floors[s.f][s.z][s.x] = '4'; floors[s.f + 1][s.z][s.x] = '4'; }); // 4 = 樓梯格(不放豆子)
-  return { floors, stairs, gh: GEN_H.slice(0, ng).map((h, i) => [h[0], h[1], i % nf]), th };
+  return { floors, stairs, gh: GEN_H().slice(0, ng).map((h, i) => [h[0], h[1], i % nf]), th, w };
 }
-const LEVELS = [
-  { floors: [MAP0], stairs: [], gh: [[7, 3, 0], [1, 11, 0], [13, 11, 0]], th: 0 },
-  genLevel(2, 11, 1, 3), genLevel(3, 23, 2, 4), genLevel(4, 37, 3, 4), genLevel(5, 51, 4, 4)
-];
+const LEVELS = [genLevel(1, 5, 0, 3, 23), genLevel(2, 11, 1, 3, 27), genLevel(3, 23, 2, 4, 31), genLevel(4, 37, 3, 4, 35), genLevel(5, 51, 4, 4, 39)];
 
 // ---- three.js setup ----
 const wrap = document.getElementById('wrap');
@@ -131,8 +157,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, (window.matchMedia && matchMed
 wrap.insertBefore(renderer.domElement, wrap.firstChild);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05060f);
-scene.fog = new THREE.Fog(0x05060f, 10, 26);
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 60);
+scene.fog = new THREE.Fog(0x05060f, 15, 36);
+const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 90);
 function resize() { const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
@@ -179,8 +205,8 @@ function buildWorld() {
 const decoGroup = new THREE.Group(); scene.add(decoGroup);
 function buildDeco(t) { // 迷宮外圍的場景裝飾
   decoGroup.clear(); const lit = new THREE.MeshStandardMaterial({ color: t.dc, emissive: t.dc, emissiveIntensity: .45, roughness: .5 });
-  for (let i = 0; i < 48; i++) {
-    let x, z; do { x = (Math.random() - .5) * 36; z = (Math.random() - .5) * 36; } while (Math.abs(x) < 8.8 && Math.abs(z) < 8.8);
+  for (let i = 0; i < 40 + W * 2; i++) {
+    let x, z; do { x = (Math.random() - .5) * (W + 22); z = (Math.random() - .5) * 36; } while (Math.abs(x) < W / 2 + 1.3 && Math.abs(z) < H / 2 + 1.3);
     let m;
     if (t.deco === 'pillar') { const h = 1 + Math.random() * 4; m = new THREE.Mesh(new THREE.BoxGeometry(.4, h, .4), lit); m.position.y = h / 2; }
     else if (t.deco === 'cone') { const h = 2 + Math.random() * 2; m = new THREE.Mesh(new THREE.ConeGeometry(.7, h, 8), lit); m.position.y = h / 2; }
@@ -235,9 +261,21 @@ function makeGhost(color) {
   g.add(body, top); g.userData.mat = mat; g.userData.color = color; scene.add(g); return g;
 }
 const ghostMeshes = GCOL.map(makeGhost);
+// v0.1:⏳ 減速沙漏道具(地圖上隨機出現,撿到後鬼變慢)
+const slowMesh = new THREE.Group();
+{ const gm = new THREE.MeshStandardMaterial({ color: 0x9ff3ff, emissive: 0x2bb8e0, emissiveIntensity: .8, transparent: true, opacity: .9, roughness: .2 });
+  const fm = new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0x8a5a00, roughness: .4 });
+  const a = new THREE.Mesh(new THREE.ConeGeometry(.2, .26, 16), gm); a.position.y = .13; a.rotation.x = Math.PI;
+  const b = new THREE.Mesh(new THREE.ConeGeometry(.2, .26, 16), gm); b.position.y = -.13;
+  const t1 = new THREE.Mesh(new THREE.CylinderGeometry(.24, .24, .05, 16), fm); t1.position.y = .28;
+  const t2 = t1.clone(); t2.position.y = -.28;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.42, .03, 8, 32), new THREE.MeshBasicMaterial({ color: 0x7fe8ff, transparent: true, opacity: .7 }));
+  ring.rotation.x = Math.PI / 2; ring.position.y = -.34; slowMesh.userData.ring = ring;
+  slowMesh.add(a, b, t1, t2, ring); }
+slowMesh.visible = false; scene.add(slowMesh);
 
 // ---- game state ----
-let GHOME = LEVELS[0].gh;
+let GHOME = LEVELS[0].gh; setDims(LEVELS[0].w);
 function mover(x, z, f) { f = f || 0; return { x, z, tx: x, tz: z, t: 1, dx: 0, dz: 0, f, ey: f * FH, cl: 0, lock: '' }; }
 const mpos = m => ({ x: m.x + (m.tx - m.x) * m.t, z: m.z + (m.tz - m.z) * m.t });
 function step(m, dist, choose) {
@@ -251,66 +289,171 @@ function step(m, dist, choose) {
   }
 }
 let pac, ghosts, score, lives, state = 'ready', scared = 0, invuln = 0, want = [0, 0], py = 0, vy = 0, remaining = 0;
-// ---- 音樂(程式即時合成,按 M 鍵可靜音)----
-let actx = null, muted = false, warned = false;
-function toggleMute() { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; }
+// ---- 音樂與音效(程式即時合成;右上角 🎵 / 🔊 可分別開關,M 鍵切換音樂)----
+let actx = null, warned = false, demo = true, musBus = null, sfxBus = null;
+let musOn = true, sfxOn = true;
+try { musOn = localStorage.getItem('pac3d_mus') !== '0'; sfxOn = localStorage.getItem('pac3d_sfx') !== '0'; } catch (e) {}
+function paintSnd() { document.getElementById('bMus').classList.toggle('off', !musOn); document.getElementById('bSfx').classList.toggle('off', !sfxOn); }
+function toggleMus() { musOn = !musOn; try { localStorage.setItem('pac3d_mus', musOn ? '1' : '0'); } catch (e) {} paintSnd(); if (musOn) startBgm(); else stopBgm(); }
+function toggleSfx() { sfxOn = !sfxOn; try { localStorage.setItem('pac3d_sfx', sfxOn ? '1' : '0'); } catch (e) {} paintSnd(); }
 function unlockAudio() { // iPhone/iPad:第一次觸碰時解鎖聲音,之後才能自動播放音效
   const c = ac(); if (!c) return;
   try { const src = c.createBufferSource(); src.buffer = c.createBuffer(1, 1, 22050); src.connect(c.destination); src.start(0); } catch (e) {}
+  if (musOn) startBgm();
   if (c.state === 'running') ['pointerdown', 'touchend', 'keydown'].forEach(ev => removeEventListener(ev, unlockAudio));
 }
 ['pointerdown', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, unlockAudio));
-function ac() { try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; } catch (e) { return null; } }
+function ac() {
+  try {
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      musBus = actx.createGain(); musBus.gain.value = .55; musBus.connect(actx.destination);
+      sfxBus = actx.createGain(); sfxBus.gain.value = 1; sfxBus.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume(); return actx;
+  } catch (e) { return null; }
+}
+// ---- 背景音樂:8-bit 街機晶片音樂,每個場景(關卡)一首不同的配樂 ----
+// 方波主旋律、方波琶音、三角波低音(放在中音區)、雜訊鼓組;吃到 🐢 減速時整首音樂跟著放慢
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const _pw = {};
+function pulseWave(duty) { // 用傅立葉係數做出不同占空比的脈衝波(紅白機音色)
+  if (_pw[duty]) return _pw[duty];
+  const n = 40, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k = 1; k < n; k++) im[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * duty);
+  return (_pw[duty] = actx.createPeriodicWave(re, im));
+}
+let _noise = null;
+function noiseBuf() { if (_noise) return _noise; const c = actx, b = c.createBuffer(1, c.sampleRate * .3, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return (_noise = b); }
+function chip(t, f, dur, vol, duty, vib) {
+  const c = actx, o = c.createOscillator(), g = c.createGain(); o.setPeriodicWave(pulseWave(duty)); o.frequency.value = f;
+  if (vib && dur > .2) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .012, t + dur * .6); l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + dur + .02); }
+  g.gain.setValueAtTime(vol, t); g.gain.setValueAtTime(vol, t + dur * .7); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(musBus); o.start(t); o.stop(t + dur + .02);
+}
+function tri(t, f, dur, vol) {
+  const c = actx, o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = f;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g); g.connect(musBus); o.start(t); o.stop(t + dur + .02);
+}
+function nz(t, dur, vol, type, fq) {
+  const c = actx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = noiseBuf(); f.type = type; f.frequency.value = fq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(f); f.connect(g); g.connect(musBus); s.start(t); s.stop(t + dur + .02);
+}
+const SONGS = [
+  { name: '霓虹迷宮衝刺', bpm: 150, duty: .25, arp: .125, drum: 'basic', bass: 'oct', // C 大調,輕快跳躍
+    prog: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]], roots: [48, 57, 53, 55],
+    mel: [[72, 76, 79, 76, 84, 79, 76, 79], [81, 0, 79, 76, 72, 76, 79, 0], [77, 81, 84, 81, 77, 76, 74, 72], [74, 0, 79, 0, 83, 81, 79, 74],
+      [76, 79, 84, 0, 83, 84, 86, 84], [81, 0, 76, 0, 81, 83, 84, 81], [77, 0, 81, 84, 86, 84, 81, 77], [79, 0, 74, 77, 79, 83, 84, 0]] },
+  { name: '熔岩奔逃', bpm: 164, duty: .5, arp: .25, drum: 'rock', bass: 'pump', // A 小調,厚實方波 + 十六分音符推進低音
+    prog: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 56, 59]], roots: [57, 53, 55, 52],
+    mel: [[69, 72, 76, 72, 81, 0, 79, 76], [77, 0, 76, 77, 81, 77, 72, 0], [74, 79, 83, 79, 86, 0, 83, 79], [80, 0, 83, 0, 76, 80, 83, 86],
+      [81, 0, 84, 81, 76, 0, 72, 76], [77, 81, 84, 0, 89, 88, 84, 81], [83, 0, 79, 83, 86, 83, 79, 74], [76, 80, 83, 88, 0, 0, 0, 0]] },
+  { name: '冰晶慢舞', bpm: 116, duty: .125, arp: .125, drum: 'soft', bass: 'half', echo: true, // E 大調,細亮音色 + 回音,像冰晶閃爍
+    prog: [[64, 68, 71], [61, 64, 68], [57, 61, 64], [59, 63, 66]], roots: [52, 49, 57, 59],
+    mel: [[76, 0, 80, 0, 83, 0, 88, 0], [85, 0, 83, 80, 76, 0, 0, 0], [81, 0, 80, 0, 76, 0, 73, 0], [75, 0, 78, 0, 83, 0, 0, 0],
+      [88, 0, 87, 0, 83, 0, 80, 0], [85, 0, 88, 0, 87, 85, 83, 0], [81, 83, 85, 0, 88, 0, 85, 0], [83, 0, 87, 0, 88, 0, 0, 0]] },
+  { name: '森林搖擺', bpm: 126, duty: .5, arp: 0, drum: 'swing', bass: 'walk', swing: true, vib: true, // D 多利安調,搖擺節奏 + 揉音
+    prog: [[62, 65, 69], [55, 59, 62], [60, 64, 67], [62, 65, 69]], roots: [50, 55, 48, 50],
+    mel: [[74, 0, 77, 79, 81, 0, 79, 77], [79, 0, 74, 0, 71, 74, 79, 0], [76, 79, 84, 0, 83, 81, 79, 76], [77, 0, 74, 0, 0, 0, 74, 76],
+      [77, 79, 81, 0, 84, 0, 81, 79], [83, 0, 79, 0, 74, 79, 83, 86], [84, 83, 81, 79, 76, 0, 79, 0], [74, 0, 0, 0, 69, 0, 74, 0]] },
+  { name: '星際巡航', bpm: 138, duty: .25, arp: .125, drum: 'space', bass: 'oct', echo: true, dbl: true, // 升 F 小調,八度疊音 + 回音的太空感
+    prog: [[66, 69, 73], [62, 66, 69], [64, 68, 71], [61, 65, 68]], roots: [54, 50, 52, 49],
+    mel: [[78, 0, 81, 0, 85, 0, 83, 81], [78, 0, 0, 74, 78, 81, 86, 0], [83, 0, 80, 0, 76, 80, 83, 0], [85, 0, 0, 0, 77, 80, 85, 0],
+      [90, 0, 88, 0, 85, 0, 81, 85], [86, 0, 85, 81, 78, 0, 74, 78], [80, 83, 88, 0, 87, 85, 83, 80], [85, 0, 89, 0, 85, 0, 0, 0]] }
+];
+const curSong = () => SONGS[(LEVELS[level] && LEVELS[level].th) || 0];
+let bgmTimer = null, bgmNext = 0, bgmStep = 0;
+function resetSong() { bgmStep = 0; if (actx) bgmNext = Math.max(bgmNext, actx.currentTime + .05); }
+function bgmTick() {
+  const c = actx; if (!c || !musOn) return;
+  while (bgmNext < c.currentTime + .2) {
+    const S = curSong(), sp = 60 / S.bpm / 4 * (slowT > 0 ? 1.5 : 1), i = bgmStep % 16, bar = Math.floor(bgmStep / 16) % 8, ch = S.prog[bar % 4], root = S.roots[bar % 4];
+    const t = bgmNext + (S.swing && i % 4 === 2 ? sp * .33 : 0), duck = scared > 0 ? .4 : 1;
+    if (i % 2 === 0) {
+      const m = S.mel[bar][i / 2];
+      if (m) {
+        const len = sp * (S.mel[bar][i / 2 + 1] === 0 ? 3.6 : 1.8), v = .045 * duck;
+        chip(t, mtof(m), len, v, S.duty, S.vib);
+        if (S.dbl) chip(t, mtof(m - 12), len, v * .45, .5);
+        if (S.echo) chip(t + sp * 3, mtof(m), len, v * .3, S.duty);
+      }
+    }
+    if (S.arp) chip(t, mtof(ch[i % 3] + (i % 6 < 3 ? 0 : 12)), sp * .7, .014 * duck, S.arp);
+    if (S.bass === 'oct' && i % 2 === 0) tri(t, mtof(root + (i % 4 ? 12 : 0)), sp * 1.7, .13 * duck);
+    if (S.bass === 'pump') tri(t, mtof(root + (i % 4 === 3 ? 12 : 0)), sp * .85, .12 * duck);
+    if (S.bass === 'half' && i % 8 === 0) tri(t, mtof(root), sp * 7.5, .12 * duck);
+    if (S.bass === 'walk' && i % 4 === 0) tri(t, mtof(root + [0, 7, 12, 7][i / 4]), sp * 3.5, .13 * duck);
+    const d = S.drum;
+    if (d === 'basic') { if (i % 8 === 0) tri(t, 180, .07, .18 * duck); if (i % 8 === 4) nz(t, .12, .09 * duck, 'bandpass', 2200); if (i % 2 === 1) nz(t, .035, .035 * duck, 'highpass', 7000); }
+    if (d === 'rock') { if (i === 0 || i === 6 || i === 8 || i === 11) tri(t, 200, .08, .2 * duck); if (i % 8 === 4) nz(t, .15, .12 * duck, 'bandpass', 1800); nz(t, .03, (i % 2 ? .02 : .035) * duck, 'highpass', 8000); }
+    if (d === 'soft') { if (i === 0) tri(t, 160, .09, .12 * duck); if (i % 4 === 2) nz(t, .05, .025 * duck, 'highpass', 9000); if (i === 12) chip(t, mtof(100), .05, .015 * duck, .5); }
+    if (d === 'swing') { if (i % 8 === 0) tri(t, 170, .08, .16 * duck); if (i % 8 === 4) nz(t, .1, .07 * duck, 'bandpass', 2600); if (i % 4 === 0 || i % 4 === 2) nz(t, .04, .03 * duck, 'highpass', 7500); }
+    if (d === 'space') { if (i === 0 || i === 10) tri(t, 190, .08, .17 * duck); if (i === 8) nz(t, .3, .06 * duck, 'bandpass', 1200); if (i % 4 === 2) nz(t, .04, .03 * duck, 'highpass', 9000); }
+    bgmNext += sp; bgmStep++;
+  }
+}
+function startBgm() { const c = ac(); if (!c || bgmTimer || !musOn) return; bgmNext = c.currentTime + .1; bgmTimer = setInterval(bgmTick, 40); }
+function stopBgm() { if (bgmTimer) clearInterval(bgmTimer); bgmTimer = null; }
 function tone(c, f, st, dur, type, vol, slideTo, lp) {
   const t = c.currentTime + st, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
   if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
   g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
   let out = o; if (lp) { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = lp; o.connect(fl); out = fl; }
-  out.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + .02);
+  out.connect(g); g.connect(sfxBus || c.destination); o.start(t); o.stop(t + dur + .02);
 }
 function powerMusic() { // 吃到大力丸:激昂快節奏
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   const seq = [220, 261.63, 329.63, 440, 523.25, 659.25, 880, 659.25, 880, 1046.5, 880, 1318.5];
   seq.forEach((f, i) => { tone(c, f, i * .11, .1, 'square', .08, 0, 3000); tone(c, f / 2, i * .11, .1, 'sawtooth', .06, 0, 1500); });
   for (let i = 0; i < 6; i++) tone(c, 150, i * .22, .14, 'sine', .35, 45);
   tone(c, 1318.5, 1.32, .5, 'square', .09, 0, 3000); tone(c, 659.25, 1.32, .5, 'sawtooth', .07, 0, 1500);
 }
 function sadMusic() { // 力量快消失:失望的下滑音
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   tone(c, 330, 0, .3, 'sawtooth', .12, 0, 900); tone(c, 311, .32, .3, 'sawtooth', .12, 0, 800); tone(c, 294, .64, .85, 'sawtooth', .13, 185, 700);
 }
 let wakaT = 0, wakaN = 0;
 function waka() { // 移動時的經典「阿巴阿巴」:兩個音高交替
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   wakaN++;
   if (wakaN % 2) tone(c, 520, 0, .09, 'triangle', .1, 260, 2500); else tone(c, 260, 0, .09, 'triangle', .1, 520, 2500);
 }
 function eatGhostSound() { // 吃到鬼:明亮的上升音 + 三顆星星音
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   tone(c, 200, 0, .32, 'square', .09, 1500, 4000);
   [880, 1174.7, 1568].forEach((f, i) => tone(c, f, .32 + i * .07, .09, 'triangle', .12, 0, 5000));
 }
 function deathSound() { // 被鬼抓到:下墜的哀鳴 + 三聲悶悶的破裂音
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   for (let i = 0; i < 8; i++) tone(c, 880 * Math.pow(.8, i), i * .07, .08, 'sawtooth', .1, 880 * Math.pow(.8, i + 1), 2500);
   [0, .13].forEach(o => tone(c, 160, .58 + o, .1, 'sine', .32, 50));
   tone(c, 75, .8, .25, 'sawtooth', .12, 42, 300);
 }
 function stairSound() { // 爬樓梯:一階一階往上的短音
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   for (let i = 0; i < 5; i++) tone(c, 440 * Math.pow(1.19, i), i * .07, .08, 'triangle', .09, 0, 4000);
 }
 function coinSound(off) { // 金幣「叮噹」
-  if (muted) return; const c = ac(); if (!c) return; off = off || 0;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return; off = off || 0;
   tone(c, 988, off, .07, 'square', .09, 0, 4000); tone(c, 1319, off + .07, .32, 'square', .09, 0, 4000);
 }
 function failSound() { // 買不起/不能買
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   tone(c, 180, 0, .12, 'square', .12, 120, 1200); tone(c, 180, .16, .12, 'square', .12, 120, 1200);
 }
 function godSound() { // 啟動無敵:往上閃耀的音
-  if (muted) return; const c = ac(); if (!c) return;
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
   tone(c, 400, 0, .4, 'sawtooth', .08, 1600, 3000); tone(c, 800, .12, .35, 'triangle', .09, 2400, 5000);
+}
+function slowSound() { // 🐢 減速:像錄音帶慢下來的「嗚~嗚~」下滑音 + 滴答聲
+  if (!sfxOn || demo) return; const c = ac(); if (!c) return;
+  tone(c, 880, 0, .55, 'sine', .12, 330, 3000); tone(c, 1320, .05, .5, 'triangle', .05, 495, 3000);
+  [0, .28, .62].forEach((o, i) => tone(c, 1760 - i * 300, .55 + o, .05, 'triangle', .08, 0, 6000));
+}
+function useSlow() {
+  if (state !== 'play') return;
+  if (slowItems <= 0) { toast('沒有減速道具了'); return; }
+  slowItems--; slowT = Math.max(slowT, 7); slowSound(); toast('🐢 鬼變慢 7 秒!'); updateHud();
 }
 function toast(t) {
   const b = document.getElementById('toast'); b.textContent = t;
@@ -319,23 +462,24 @@ function toast(t) {
 function shopHtml() {
   return `分數:<b style="color:#ffd60a">${score}</b>
     <div class="shop">
-      <div class="sl">🪙 <b id="sCoins">${coins}</b> 元 ・ 愛心 <b id="sLives">${lives}</b>/5 ・ 無敵道具 <b id="sGods">${godItems}</b> 個</div>
+      <div class="sl">🪙 <b id="sCoins">${coins}</b> 元 ・ 愛心 <b id="sLives">${lives}</b>/5 ・ ⚡ <b id="sGods">${godItems}</b> ・ 🐢 <b id="sSlows">${slowItems}</b></div>
       <button data-buy="heart">❤️ 買 1 顆愛心 <i>100 元</i></button>
       <button data-buy="god">⚡ 無敵 5 秒(可穿過鬼) <i>50 元</i></button>
-      <div class="sm" id="sMsg">遊戲中按 E 鍵(手機按 ⚡)使用無敵道具</div>
+      <button data-buy="slow">🐢 敵人減速 7 秒 <i>40 元</i></button>
+      <div class="sm" id="sMsg">遊戲中按 E(⚡)用無敵、按 Q(🐢)讓鬼變慢</div>
     </div>`;
 }
 function refreshShop() {
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set('sCoins', coins); set('sLives', lives); set('sGods', godItems);
+  set('sCoins', coins); set('sLives', lives); set('sGods', godItems); set('sSlows', slowItems);
 }
 function buy(k) {
   if (state !== 'next') return;
-  const m = document.getElementById('sMsg'), cost = k === 'heart' ? 100 : 50;
+  const m = document.getElementById('sMsg'), cost = k === 'heart' ? 100 : k === 'slow' ? 40 : 50;
   if (k === 'heart' && lives >= 5) { m.textContent = '愛心已經滿了(上限 5 顆)'; failSound(); return; }
   if (coins < cost) { m.textContent = `金幣不夠,還差 ${cost - coins} 元`; failSound(); return; }
-  coins -= cost; if (k === 'heart') lives++; else godItems++;
-  m.textContent = k === 'heart' ? '❤️ 買到 1 顆愛心!' : '⚡ 買到 1 個無敵道具!';
+  coins -= cost; if (k === 'heart') lives++; else if (k === 'slow') slowItems++; else godItems++;
+  m.textContent = k === 'heart' ? '❤️ 買到 1 顆愛心!' : k === 'slow' ? '🐢 買到 1 個減速道具!' : '⚡ 買到 1 個無敵道具!';
   coinSound(); updateHud(); refreshShop();
 }
 function useGod() {
@@ -345,23 +489,24 @@ function useGod() {
   godItems--; godT = 5; godSound(); toast('⚡ 無敵 5 秒!'); updateHud();
 }
 function resetPositions() {
-  pac = mover(7, 7); want = [0, 0]; py = 0; vy = 0;
+  pac = mover(CX, 7); want = [0, 0]; py = 0; vy = 0;
   ghosts = GHOME.map(h => mover(h[0], h[1], h[2] || 0));
 }
-let level = 0, coins = 0, godItems = 0, godT = 0;
+let level = 0, coins = 0, godItems = 0, godT = 0, slowItems = 0, slowT = 0, slowItem = null, slowSpawnT = 8;
 function loadLevel() {
-  const L = LEVELS[level]; FL = L.floors; STAIRS = L.stairs; GHOME = L.gh; applyTheme(L.th); buildWorld();
+  const L = LEVELS[level]; setDims(L.w); floor.geometry.dispose(); floor.geometry = new THREE.PlaneGeometry(W, H);
+  FL = L.floors; STAIRS = L.stairs; GHOME = L.gh; applyTheme(L.th); buildWorld(); resetSong(); // 換關時換成這個場景的配樂,從頭播 slowItem = null; slowSpawnT = 8; slowT = 0;
   scared = 0; invuln = 0; godT = 0; buildPellets(); remaining = pellets.size; resetPositions();
   ghostMeshes.forEach((m, i) => { m.visible = i < GHOME.length; }); updateHud();
 }
-function newGame() { score = 0; lives = 3; level = 0; coins = 0; godItems = 0; godT = 0; loadLevel(); }
+function newGame(lv) { score = 0; lives = 3; level = lv || 0; coins = 0; godItems = 0; godT = 0; slowItems = 0; loadLevel(); }
 function showBanner() {
   const b = document.getElementById('banner'); b.textContent = `第 ${level + 1} 關 ・ ${THEMES[LEVELS[level].th].name}` + (FL.length > 1 ? `(${FL.length} 層樓)` : '');
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
 }
 function updateHud() {
   const lf = document.getElementById('left');
-  if (pac && floorLeft.length) { const n = floorLeft[pac.f] || 0; lf.innerHTML = (n > 0 ? `本層剩 <b>${n}</b> 顆豆子` : '本層已清完 ✅') + (FL.length > 1 ? `<br>全關剩 <b>${remaining}</b> 顆` : ''); } document.getElementById('lv').textContent = level + 1; document.getElementById('fl').textContent = FL.length > 1 && pac ? ` ・${pac.f + 1}/${FL.length}層` : ''; document.getElementById('coins').textContent = coins; document.getElementById('gods').textContent = godItems; document.getElementById('score').textContent = score; document.getElementById('lives').textContent = '❤'.repeat(Math.max(lives, 0)) || '—'; }
+  if (pac && floorLeft.length) { const n = floorLeft[pac.f] || 0; lf.innerHTML = (n > 0 ? `本層剩 <b>${n}</b> 顆豆子` : '本層已清完 ✅') + (FL.length > 1 ? `<br>全關剩 <b>${remaining}</b> 顆` : ''); } document.getElementById('lv').textContent = level + 1; document.getElementById('fl').textContent = FL.length > 1 && pac ? ` ・${pac.f + 1}/${FL.length}層` : ''; document.getElementById('coins').textContent = coins; document.getElementById('gods').textContent = godItems; document.getElementById('slows').textContent = slowItems; document.getElementById('score').textContent = score; document.getElementById('lives').textContent = '❤'.repeat(Math.max(lives, 0)) || '—'; }
 
 let lockUntil = 0; // 過關/結束畫面剛出現時,先擋住按鍵連發,避免一閃而過
 function showOverlay(title, msg, btn) {
@@ -372,6 +517,7 @@ function showOverlay(title, msg, btn) {
 function start() {
   if (state === 'play' || Date.now() < lockUntil) return;
   const wasDead = state === 'dead';
+  if (state === 'demo') leavePromo();
   if (wasDead) { resetPositions(); invuln = 1.8; } else if (state === 'next') { level++; loadLevel(); } else if (state !== 'paused') newGame();
   state = 'play'; document.getElementById('overlay').style.display = 'none'; document.body.classList.remove('ovl'); if (!wasDead) showBanner();
 }
@@ -384,9 +530,10 @@ function setWant(d) {
     [pac.x, pac.tx] = [pac.tx, pac.x]; [pac.z, pac.tz] = [pac.tz, pac.z]; pac.t = 1 - pac.t; pac.dx = -pac.dx; pac.dz = -pac.dz;
   }
 }
-function jump() { if (state === 'play' && py <= 0.001) vy = 9; }
+function jump() { if ((state === 'play' || state === 'demo') && py <= 0.001) vy = 9; }
 addEventListener('keydown', e => {
-  if (e.key === 'm' || e.key === 'M') { toggleMute(); return; }
+  if (e.key === 'm' || e.key === 'M') { toggleMus(); return; }
+  if (e.key === 'q' || e.key === 'Q') { useSlow(); return; }
   if (e.key === 'e' || e.key === 'E') { useGod(); return; }
   if (state === 'next' && e.code !== 'Space' && e.key !== 'Enter') return;
   if (e.code === 'Space') { e.preventDefault(); if (state !== 'play') start(); else jump(); return; }
@@ -403,7 +550,9 @@ const PAD = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 document.querySelectorAll('#pad [data-d]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'play') start(); setWant(PAD[b.dataset.d]); }));
 document.getElementById('jbtn').addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'play') start(); else jump(); });
 document.getElementById('gbtn').addEventListener('pointerdown', e => { e.preventDefault(); useGod(); });
-document.getElementById('mute').addEventListener('pointerdown', e => { e.preventDefault(); toggleMute(); });
+document.getElementById('sbtn').addEventListener('pointerdown', e => { e.preventDefault(); useSlow(); });
+['bMus', 'bSfx'].forEach(id => { const b = document.getElementById(id); b.addEventListener('pointerdown', e => e.stopPropagation()); b.addEventListener('click', e => { e.stopPropagation(); unlockAudio(); id === 'bMus' ? toggleMus() : toggleSfx(); }); });
+paintSnd();
 // 觸控手勢:在畫面上滑動 = 改變方向,輕點 = 跳
 let sw = null; const cv = renderer.domElement; cv.style.touchAction = 'none';
 cv.addEventListener('pointerdown', e => {
@@ -459,7 +608,7 @@ function hit() { // 被鬼抓到:畫面停住約 1 秒並播放音樂,之後按�
 function respawnGhost(i) { // 被吃掉的鬼會在隨機的新位置(可能是別層)重生,且離玩家至少 6 格
   const gp = mpos(pac);
   for (let t = 0; t < 80; t++) {
-    const f = Math.floor(Math.random() * FL.length), x = 1 + 2 * Math.floor(Math.random() * 7), z = 1 + 2 * Math.floor(Math.random() * 7);
+    const f = Math.floor(Math.random() * FL.length), x = 1 + 2 * Math.floor(Math.random() * OFF), z = 1 + 2 * Math.floor(Math.random() * 7);
     if (FL[f][z][x] === '1' || FL[f][z][x] === '4') continue;
     if (f === pac.f && Math.abs(x - gp.x) + Math.abs(z - gp.z) < 6) continue;
     if (ghosts.some((g, j) => j !== i && g.f === f && Math.abs(g.x - x) + Math.abs(g.z - z) < 2)) continue;
@@ -486,10 +635,32 @@ function stairHere(m) { // 走到樓梯格的中心時,回傳要去的樓層
   return null;
 }
 function snapTo(m, st) { m.x = m.tx = st.rx; m.z = m.tz = st.rz; m.t = 1; }
+function updSlowItem(dt) { // 沙漏:每隔一段時間在玩家這層出現,12 秒沒撿就消失
+  if (slowItem) {
+    slowItem.life -= dt;
+    const p = mpos(pac);
+    if (slowItem.f === pac.f && Math.hypot(p.x - slowItem.x, p.z - slowItem.z) < 0.55) {
+      slowT = 7; slowSound(); toast('⏳ 鬼變慢 7 秒!'); slowItem = null; slowSpawnT = 14 + Math.random() * 8; return;
+    }
+    if (slowItem.life <= 0) { slowItem = null; slowSpawnT = 10 + Math.random() * 6; }
+    return;
+  }
+  slowSpawnT -= dt; if (slowSpawnT > 0) return;
+  const p = mpos(pac);
+  for (let t = 0; t < 120; t++) {
+    const x = 1 + Math.floor(Math.random() * (W - 2)), z = 1 + Math.floor(Math.random() * (H - 2)), c = FL[pac.f][z][x];
+    if (c === '1' || c === '4' || c === '3') continue;
+    const d = Math.abs(x - p.x) + Math.abs(z - p.z); if (d < 5 || d > 16) continue;
+    slowItem = { f: pac.f, x, z, life: 12 }; return;
+  }
+  slowSpawnT = 2;
+}
 function update(dt) {
-  if (pac.cl <= 0) step(pac, dt * 4.2, choosePac);
+  if (pac.cl <= 0) step(pac, dt * 4.2, state === 'demo' ? demoChoose : choosePac);
   if (pac.t < 1) { wakaT -= dt; if (wakaT <= 0) { waka(); wakaT = .15; } }
-  ghosts.forEach((g, i) => { if (g.cl <= 0) step(g, dt * (scared > 0 ? 2.2 : 3.0 + i * 0.15 + level * 0.2), chooseGhost); });
+  const slowK = slowT > 0 ? 0.45 : 1; // 🐢 減速中:鬼只剩 45% 速度
+  ghosts.forEach((g, i) => { if (g.cl <= 0) step(g, dt * slowK * (scared > 0 ? 2.2 : 3.0 + i * 0.15 + level * 0.2), chooseGhost); });
+  updSlowItem(dt);
   [pac].concat(ghosts).forEach(m => { m.cl = Math.max(0, m.cl - dt); m.ey += (m.f * FH - m.ey) * Math.min(1, dt * 7); });
   const sp = stairHere(pac);
   if (sp) { snapTo(pac, sp); pac.f = sp.nf; pac.cl = .45; pac.lock = sp.key; stairSound(); updateHud(); }
@@ -498,13 +669,15 @@ function update(dt) {
     if (sg && (g.f !== pac.f && (pac.f > g.f) === (sg.nf > g.f) || Math.random() < 0.02)) { snapTo(g, sg); g.f = sg.nf; g.cl = .45; g.lock = sg.key; }
   });
   vy -= 20 * dt; py += vy * dt; if (py < 0) { py = 0; vy = 0; }
-  scared = Math.max(0, scared - dt); invuln = Math.max(0, invuln - dt); godT = Math.max(0, godT - dt);
+  scared = Math.max(0, scared - dt); invuln = Math.max(0, invuln - dt); godT = Math.max(0, godT - dt); slowT = Math.max(0, slowT - dt);
   document.getElementById('gods').textContent = godT > 0 ? godT.toFixed(1) + 's' : godItems;
+  document.getElementById('slows').textContent = slowT > 0 ? slowT.toFixed(1) + 's' : slowItems;
   if (scared > 0 && scared < 1.8 && !warned) { warned = true; sadMusic(); }
   const p = mpos(pac), key = pac.f + ',' + Math.round(p.x) + ',' + Math.round(p.z), pel = pellets.get(key);
   if (pel && Math.hypot(p.x - Math.round(p.x), p.z - Math.round(p.z)) < 0.45) {
     hidePellet(pel); pellets.delete(key); floorLeft[pac.f]--; score += pel.big ? 50 : 10; remaining--;
     if (pel.big) { scared = 6; warned = false; powerMusic(); } updateHud();
+    if (remaining <= 0 && state === 'demo') { demoLv = (demoLv + 1) % 3; newGame(demoLv); return; }
     if (remaining <= 0) { state = level < LEVELS.length - 1 ? 'next' : 'over'; showOverlay(level < LEVELS.length - 1 ? `第 ${level + 1} 關完成!🎉` : '🏆 全部通關!', level < LEVELS.length - 1 ? shopHtml() : `分數:<b style="color:#ffd60a">${score}</b>`, level < LEVELS.length - 1 ? `進入第 ${level + 2} 關` : '再玩一次'); return; }
   }
   ghosts.forEach((g, i) => {
@@ -512,17 +685,18 @@ function update(dt) {
     if (g.f === pac.f && Math.hypot(gp.x - p.x, gp.z - p.z) < 0.62 && py < 0.55) {
       if (scared > 0) { score += 200; coins += 10; coinSound(.45); toast('🪙 +10 元'); updateHud(); eatGhostSound(); ghosts[i] = respawnGhost(i); }
       else if (invuln <= 0 && godT <= 0 && state === 'play') hit();
+      else if (invuln <= 0 && godT <= 0 && state === 'demo') { invuln = 2; ghosts[i] = respawnGhost(i); } // 示範中被碰到:閃爍無敵,鬼換位置
     }
   });
 }
-const camPos = new THREE.Vector3(0, 9, 8), camLook = new THREE.Vector3();
+const camPos = new THREE.Vector3(0, 12, 5), camLook = new THREE.Vector3(), _ice = new THREE.Color(0xbff6ff);
 let time = 0;
 function render(dt) {
   if (state !== 'dead' && state !== 'over') time += dt;
   const p = mpos(pac);
   floorGroups.forEach((g, f) => { g.visible = f <= pac.f; });
   pacMesh.position.set(wx(p.x), 0.42 + pac.ey + py, wz(p.z));
-  const chomp = 1 + Math.sin(time * 18) * 0.08 * (state === 'play' ? 1 : 0.2);
+  const chomp = 1 + Math.sin(time * 18) * 0.08 * (state === 'play' || state === 'demo' ? 1 : 0.2);
   pacMesh.scale.set(chomp, 1 / chomp, chomp);
   pacMesh.visible = invuln <= 0 || Math.floor(time * 12) % 2 === 0;
   const pm = pacMesh.material, god = godT > 0;
@@ -536,23 +710,65 @@ function render(dt) {
     const flash = scared > 0 && scared < 1.8 && Math.floor(time * 8) % 2 === 0;
     const c = scared > 0 ? (flash ? 0xffffff : 0x2f4bff) : gm.userData.color;
     mat.color.setHex(c); mat.emissive.setHex(c);
+    if (slowT > 0 && scared <= 0) { mat.color.lerp(_ice, .55); mat.emissive.lerp(_ice, .4); } // 減速中:鬼像被凍住一樣泛冰藍
   });
   pelletMeshes.forEach(o => { o.visible = o.userData.f <= pac.f; });
   const bs = 1 + Math.sin(time * 6) * 0.15; bigList.forEach(e => { if (!e.dead && e.f <= pac.f) setInst(e.mesh, e.i, wx(e.x), e.f * FH + 0.4, wz(e.z), bs); });
+  if (slowItem) {
+    slowMesh.visible = slowItem.f <= pac.f; slowMesh.position.set(wx(slowItem.x), slowItem.f * FH + .5 + Math.sin(time * 3) * .08, wz(slowItem.z));
+    slowMesh.rotation.y = time * 1.6; slowMesh.rotation.z = Math.sin(time * 2) * .25;
+    const r = slowMesh.userData.ring, k = 1 + (time * 1.5 % 1) * .6; r.scale.set(k, k, k); r.material.opacity = .8 * (1 - (time * 1.5 % 1));
+    if (slowItem.life < 3) slowMesh.visible = slowMesh.visible && Math.floor(time * 8) % 2 === 0;
+  } else slowMesh.visible = false;
   plight.position.set(wx(p.x), pac.ey + 2.5, wz(p.z));
   const tx = wx(p.x), tz = wz(p.z);
-  camPos.lerp(new THREE.Vector3(tx * 0.9, 6.2 + pac.ey + py * 0.3, tz + 6.4), Math.min(1, dt * 4));
-  camLook.lerp(new THREE.Vector3(tx, 0.4 + pac.ey + py * 0.5, tz - 1.2), Math.min(1, dt * 6));
+  // v0.1：鏡頭拉高、往下俯視（約 70 度），牆壁不會擋住視野；左右跟著小精靈捲動
+  const tall = camera.aspect < 0.8 ? 3 : 0; // 直式手機畫面再拉高一點,看得到更多迷宮
+  camPos.lerp(new THREE.Vector3(tx, 11 + tall + pac.ey + py * 0.2, tz + 4.2 + tall * .3), Math.min(1, dt * 4));
+  camLook.lerp(new THREE.Vector3(tx, 0.4 + pac.ey + py * 0.3, tz - 0.4), Math.min(1, dt * 6));
   camera.position.copy(camPos); camera.lookAt(camLook);
   renderer.render(scene, camera);
 }
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (state === 'play') update(dt);
+  if (state === 'play' || state === 'demo') { if (state === 'demo') demoTick(dt); update(dt); }
   render(dt); requestAnimationFrame(loop);
 }
-newGame(); requestAnimationFrame(loop);
+// ---- v0.1 首頁廣告影片:AI 自動玩真正的關卡(會吃豆子、撿沙漏、跳過鬼、爬樓梯) ----
+let demoLv = 0, capT = 0, capI = -1;
+const CAPS = ['🟡 吃光豆子就過關', '👻 空白鍵跳起來閃過鬼', '⏳ 撿到沙漏,鬼變超慢', '💊 吃大力丸,反過來吃鬼', '🏢 第 N 關有 N 層樓', '↔️ 左右延伸的大迷宮', '🛒 過關賺金幣買道具'];
+function setCap(t) { document.getElementById('pmCap').innerHTML = [...t].map((ch, i) => `<span style="animation-delay:${i * 35}ms">${ch === ' ' ? '&nbsp;' : ch}</span>`).join(''); }
+function demoTick(dt) {
+  capT -= dt; if (capT <= 0) { capI = (capI + 1) % CAPS.length; setCap(CAPS[capI]); capT = 2.8; }
+  if (!slowItem && slowSpawnT > 3) slowSpawnT = 3; // 示範時沙漏比較常出現
+  const p = mpos(pac);
+  if (scared <= 0 && invuln <= 0 && ghosts.some(g => { const q = mpos(g); return g.f === pac.f && Math.hypot(q.x - p.x, q.z - p.z) < 1.25; })) jump();
+}
+function demoChoose(m) { // 用 BFS 找最近的豆子/沙漏;避開附近的鬼;本層吃完就走向樓梯
+  const f = m.f, danger = new Set();
+  if (scared <= 0) ghosts.forEach(g => { if (g.f !== f) return; const q = mpos(g); for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (Math.abs(dx) + Math.abs(dz) <= 1) danger.add((Math.round(q.x) + dx) + ',' + (Math.round(q.z) + dz)); });
+  const isGoal = (x, z) => {
+    if (slowItem && slowItem.f === f && slowItem.x === x && slowItem.z === z) return true;
+    if ((floorLeft[f] || 0) > 0) return pellets.has(f + ',' + x + ',' + z);
+    const other = floorLeft.findIndex(n => n > 0);
+    return STAIRS.some(s => s.x === x && s.z === z && ((other > f && s.f === f) || (other < f && s.f + 1 === f)));
+  };
+  const seen = new Map([[m.x + ',' + m.z, null]]), q = [[m.x, m.z]];
+  for (let i = 0; i < q.length; i++) {
+    const [x, z] = q[i];
+    if (i > 0 && isGoal(x, z)) { let k = x + ',' + z, prev; while ((prev = seen.get(k)) && prev.k !== m.x + ',' + m.z) k = prev.k; const [a, b] = k.split(',').map(Number); return [a - m.x, b - m.z]; }
+    for (const [dx, dz] of DIRS) { const a = x + dx, b = z + dz, kk = a + ',' + b; if (!open(a, b, f) || seen.has(kk) || danger.has(kk)) continue; seen.set(kk, { k: x + ',' + z }); q.push([a, b]); }
+  }
+  const opts = DIRS.filter(d => open(m.x + d[0], m.z + d[1], f) && !danger.has((m.x + d[0]) + ',' + (m.z + d[1])));
+  return opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
+}
+function enterPromo() {
+  demo = true; demoLv = 0; capI = -1; capT = 0; document.body.classList.add('promo'); document.body.classList.remove('ovl');
+  newGame(0); state = 'demo'; document.getElementById('overlay').style.display = 'flex';
+}
+function leavePromo() { demo = false; document.body.classList.remove('promo'); state = 'ready'; }
+enterPromo(); requestAnimationFrame(loop);
 </script>
 </body>
 </html>
